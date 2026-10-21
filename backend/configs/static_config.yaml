@@ -9,7 +9,8 @@ components_manager:
   components:
     server:
       listener:
-        address: 127.0.0.1
+        address: $server-address
+        address#fallback: 127.0.0.1
         port: 8080
         task_processor: main-task-processor
 

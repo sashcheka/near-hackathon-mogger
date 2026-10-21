@@ -1,0 +1,16 @@
+# Only shared backend sources, configuration, and tests enter the image.
+**
+!backend/
+!backend/CMakeLists.txt
+!backend/CMakePresets.json
+!backend/Dockerfile
+!backend/src/
+!backend/src/**
+!backend/configs/
+!backend/configs/**
+!backend/tests/
+!backend/tests/**
+**/.env
+**/.env.*
+**/__pycache__/
+**/*.pyc

@@ -15,6 +15,13 @@
         "USERVER_BUILD_SAMPLES": "OFF",
         "USERVER_FEATURE_UTEST": "OFF"
       }
+    },
+    {
+      "name": "docker",
+      "inherits": "default",
+      "cacheVariables": {
+        "USERVER_USE_CCACHE": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -23,6 +30,11 @@
       "configurePreset": "default",
       "targets": ["community_treasury_backend"],
       "jobs": 2
+    },
+    {
+      "name": "docker",
+      "inherits": "default",
+      "configurePreset": "docker"
     }
   ],
   "testPresets": [
@@ -32,6 +44,11 @@
       "output": {
         "outputOnFailure": true
       }
+    },
+    {
+      "name": "docker",
+      "inherits": "default",
+      "configurePreset": "docker"
     }
   ]
 }

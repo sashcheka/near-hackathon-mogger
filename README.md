@@ -2,6 +2,18 @@
 
 A budget-controlled purchasing assistant. An AI model selects a product, the backend validates the purchase, and the user confirms payment through a NEAR wallet.
 
+## Quick start
+
+Install Docker with Compose and enable Linux containers. Then:
+
+```sh
+git clone https://github.com/sashcheka/near-hackathon-mogger.git
+cd near-hackathon-mogger
+docker compose up --build
+```
+
+Check `http://localhost:8080/health` for `{"status":"ok"}`. Build/test details and current validation status: [backend setup](backend/README.md).
+
 ## Stage 1
 
 One user, a demo store, a real model call, and a user-confirmed NEAR Testnet transfer.
