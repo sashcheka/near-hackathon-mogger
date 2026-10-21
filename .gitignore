@@ -5,6 +5,7 @@
 .env.*
 !.env.example
 CMakeUserPresets.json
+.vscode/
 
 # Build output and dependencies
 build/
