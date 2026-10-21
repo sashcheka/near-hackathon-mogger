@@ -1,0 +1,19 @@
+.DS_Store
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+CMakeUserPresets.json
+
+# Build output and dependencies
+build/
+cmake-build-*/
+node_modules/
+dist/
+
+# Python tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

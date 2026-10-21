@@ -1,0 +1,59 @@
+# Backend
+
+C++20 service using userver v3.2. The current endpoint is `GET /health`, returning `200` and `{"status":"ok"}`. It reports that the HTTP service is running.
+
+## Requirements
+
+- A C++20 compiler, CMake 3.24+, Ninja, and Git.
+- clang-format for userver's generated C++ sources.
+- Python 3.10+ for the pytest-based integration test; the local preset uses Python 3.12.
+- [userver build dependencies](https://userver.tech/de/dab/md_en_2userver_2build_2build.html) for your platform.
+
+## Build and test
+
+Run from the repository root:
+
+```sh
+cd backend
+cmake --preset default
+cmake --build --preset default
+ctest --preset default
+```
+
+Configuration fetches the pinned userver source and resolves its dependencies. The first build can take several minutes. CTest starts the service and checks the health response through HTTP.
+
+## Run
+
+From `backend/`:
+
+```sh
+./build/community_treasury_backend --config configs/static_config.yaml
+```
+
+In another terminal:
+
+```sh
+curl -i http://127.0.0.1:8080/health
+```
+
+Stop the service with `Ctrl+C`. The listener binds to localhost; its port and logging settings are defined in `configs/static_config.yaml`.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `src/main.cpp` | Health handler registration and service startup |
+| `configs/static_config.yaml` | Task processors, HTTP listener, route, and logging |
+| `CMakeLists.txt` | Dependency version, executable, and test registration |
+| `CMakePresets.json` | Shared configure, build, and test settings |
+| `tests/` | HTTP integration test using userver's pytest fixtures |
+
+Keep machine-specific compiler or dependency paths in an ignored `CMakeUserPresets.json`. Keep request handling, application rules, and external integrations separate as features are added.
+
+On the configured development Mac, the ignored `macos-local` preset supplies Homebrew dependency and Python paths:
+
+```sh
+cmake --preset macos-local
+cmake --build --preset macos-local
+ctest --preset macos-local
+```

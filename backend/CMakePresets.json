@@ -1,0 +1,37 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Debug backend",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USERVER_INSTALL": "OFF",
+        "USERVER_USE_STATIC_LIBS": "OFF",
+        "USERVER_BUILD_TESTS": "OFF",
+        "USERVER_BUILD_SAMPLES": "OFF",
+        "USERVER_FEATURE_UTEST": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "targets": ["community_treasury_backend"],
+      "jobs": 2
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

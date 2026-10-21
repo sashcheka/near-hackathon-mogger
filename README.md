@@ -1,44 +1,31 @@
 # Community Treasury
 
-A mobile-first application for managing a residential building's shared treasury, improvement proposals, voting, and spending records on NEAR.
+A budget-controlled purchasing assistant. An AI model selects a product, the backend validates the purchase, and the user confirms payment through a NEAR wallet.
 
-## MVP
+## Stage 1
 
-One building, 5–10 simulated apartments, NEAR Testnet, and test tokens.
-
-- Non-transferable, revocable membership linked to apartment representatives.
-- Voluntary contributions to a shared improvement fund.
-- Proposals with a fixed amount, recipient, and voting deadline.
-- One vote per apartment, with quorum and majority requirements.
-- Contract-controlled payments for approved proposals and a public activity history.
-
-## Target architecture
+One user, a demo store, a real model call, and a user-confirmed NEAR Testnet transfer.
 
 ```mermaid
 flowchart TD
-    UI[React + TypeScript] -->|HTTP read API| API[C++ backend]
-    API -->|Queries and synchronized data| DB[(PostgreSQL)]
-    UI --> Wallet[NEAR wallet]
-    Wallet -->|Signed transactions| Contract[Rust contract on NEAR Testnet]
-    API -->|Read finalized state through RPC| Contract
-    Contract -->|Approved transfer| Recipient[Recipient]
+    UI[React + TypeScript] -->|Purchase request| API[C++ backend]
+    API -->|Product selection| AI[Model API or local model]
+    API -->|Validate against catalog and budget| Policy[Purchase rules]
+    API --> DB[(PostgreSQL: orders and payments)]
+    UI -->|Confirm validated purchase| Wallet[NEAR wallet]
+    Wallet -->|Testnet transfer| Store[Demo merchant account]
+    API -->|Verify payment result| RPC[NEAR Testnet RPC]
 ```
 
-| Component | Location | Technology | Responsibility |
-| --- | --- | --- | --- |
-| Frontend | `frontend/` | React, TypeScript, Vite | Dashboard, proposals, voting, payment history, and wallet interaction |
-| Backend | `backend/` | C++20; userver proposed | Read API, contract synchronization, filtering, and statistics |
-| Database | PostgreSQL; migrations in `backend/` | SQL | Queryable projection of contract data for history and reporting |
-| Contract | `contracts/treasury/` | Rust, `near-sdk` | Membership, authorization, voting, fund accounting, and payment execution |
+| Component | Location | Responsibility |
+| --- | --- | --- |
+| C++20 backend | [backend/](backend/) | Catalog, model integration, purchase validation, order history, and payment verification |
+| PostgreSQL | Schema managed by backend | Orders and verified payment records |
+| React + TypeScript | [frontend/](frontend/) | Request input, purchase review, wallet confirmation, and result display |
+| Stage specification | [docs/STAGE_1.md](docs/STAGE_1.md) | Scope, acceptance criteria, and implementation sequence |
 
-Locations describe the planned repository structure.
+The backend derives prices and recipients from its catalog, validates spending limits independently of the model, and holds no wallet keys. Payment success requires verification of the transaction outcome.
 
-## Execution and data ownership
+Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The wallet signs state-changing calls directly to the contract. The contract is authoritative for membership, votes, and treasury funds. The manager administers membership; the treasurer initiates approved payments. The backend holds no wallet keys and cannot authorize spending.
-
-The backend reads finalized contract state through NEAR JSON-RPC and updates PostgreSQL by stable record IDs. Repeated synchronization must not duplicate records. PostgreSQL serves the application's history and statistics.
-
-The contract enforces deadlines, quorum, apartment-level vote uniqueness, available funds, and at most one successful payment per proposal. Pending transfers reserve funds; callbacks confirm success or release reservations after a confirmed transfer failure.
-
-Amounts use exact integer yoctoNEAR values with support for the contract's `u128` range and string serialization in JSON. Personal resident information stays off-chain; wallets, votes, and payments are public.
+The initial backend exposes `GET /health`. See [backend setup](backend/README.md) for build, test, and run commands. Purchase handling, PostgreSQL, and frontend implementation are pending.
