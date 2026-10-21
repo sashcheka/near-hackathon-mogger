@@ -18,7 +18,10 @@ RUN useradd --create-home --uid 10001 app \
 
 USER app
 WORKDIR /app/backend
-COPY --chown=app:app backend/ ./
+COPY --chown=app:app backend/CMakeLists.txt backend/CMakePresets.json ./
+COPY --chown=app:app backend/src/ ./src/
+COPY --chown=app:app backend/configs/ ./configs/
+COPY --chown=app:app backend/tests/ ./tests/
 
 RUN cmake --preset docker \
     && cmake --build --preset docker \

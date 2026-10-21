@@ -10,6 +10,10 @@
 !backend/configs/**
 !backend/tests/
 !backend/tests/**
+# Never include host build output or machine-specific CMake presets.
+backend/build/
+backend/cmake-build-*/
+backend/CMakeUserPresets.json
 **/.env
 **/.env.*
 **/__pycache__/

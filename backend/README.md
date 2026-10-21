@@ -4,7 +4,7 @@ C++20 service using userver v3.2. The current endpoint is `GET /health`, returni
 
 ## Docker
 
-Install [Docker Desktop](https://docs.docker.com/desktop/) on macOS/Windows, or [Docker Engine with the Compose plugin](https://docs.docker.com/engine/install/) on Linux. Use Linux containers; no host C++ or Python setup is required. Run from the repository root:
+Install [Docker Desktop](https://docs.docker.com/desktop/) on macOS/Windows, or [Docker Engine with the Compose plugin](https://docs.docker.com/engine/install/) on Linux. On macOS, [Colima](https://github.com/abiosoft/colima) with Docker CLI and Compose is a terminal-only alternative; start it with `colima start` first. Use Linux containers; no host C++ or Python setup is required. Run from the repository root:
 
 ```sh
 docker compose up --build
@@ -28,7 +28,7 @@ The first command reruns the HTTP integration test in a separate container; the 
 
 The development image uses Ubuntu 24.04 and includes build/test tools. It builds for the host's Linux architecture rather than forcing AMD64. `configs/docker_vars.yaml` sets the container listener to `0.0.0.0`; Compose publishes port 8080 only on the host's localhost.
 
-Container image build and startup have not yet been verified: Docker is not installed on the current development machine.
+The Dockerfile copies shared CMake files, sources, configuration, and tests explicitly. Host build output and `CMakeUserPresets.json` are excluded. The Linux ARM64 image build, integration test, and Compose healthcheck have been verified on macOS with Colima.
 
 ## Native requirements
 
