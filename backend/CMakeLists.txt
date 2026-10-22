@@ -16,7 +16,7 @@ userver_setup_environment()
 
 add_executable(community_treasury_backend src/main.cpp)
 target_compile_features(community_treasury_backend PRIVATE cxx_std_20)
-target_link_libraries(community_treasury_backend PRIVATE userver::core)
+target_link_libraries(community_treasury_backend PRIVATE userver::postgresql)
 
 if(BUILD_TESTING)
     include("${userver_SOURCE_DIR}/cmake/UserverTestsuite.cmake")

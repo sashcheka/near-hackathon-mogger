@@ -14,6 +14,8 @@
         "USERVER_BUILD_TESTS": "OFF",
         "USERVER_BUILD_SAMPLES": "OFF",
         "USERVER_FEATURE_UTEST": "OFF",
+        "USERVER_FEATURE_POSTGRESQL": "ON",
+        "USERVER_FEATURE_PATCH_LIBPQ": "OFF",
         "USERVER_USE_CCACHE": "OFF"
       }
     }

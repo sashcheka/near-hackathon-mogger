@@ -10,6 +10,8 @@
 !backend/configs/**
 !backend/tests/
 !backend/tests/**
+!backend/db/
+!backend/db/**
 # Never include host build output or machine-specific CMake presets.
 backend/build/
 backend/cmake-build-*/

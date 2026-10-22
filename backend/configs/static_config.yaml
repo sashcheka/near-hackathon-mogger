@@ -25,3 +25,17 @@ components_manager:
       path: /health
       method: GET
       task_processor: main-task-processor
+
+    dns-client:
+      fs-task-processor: fs-task-processor
+
+    testsuite-support: {}
+
+    postgres-db:
+      dbconnection#env: POSTGRES_DSN
+      dbconnection#fallback: postgresql://treasury:local-dev-only@postgres:5432/treasury
+      blocking_task_processor: fs-task-processor
+      dns_resolver: async
+      min_pool_size: 1
+      max_pool_size: 4
+      connlimit_mode: manual

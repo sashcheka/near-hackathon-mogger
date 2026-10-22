@@ -8,8 +8,9 @@ RUN apt-get update \
         libboost-program-options-dev libboost-regex-dev libboost-stacktrace-dev \
         libbz2-dev libc-ares-dev libcctz-dev libcrypto++-dev \
         libcurl4-openssl-dev libev-dev libfmt-dev libicu-dev libjemalloc-dev \
-        libnghttp2-dev libre2-dev libssl-dev liburing-dev libyaml-cpp-dev \
-        libzstd-dev ninja-build python3-dev python3-venv zlib1g-dev \
+        libnghttp2-dev libpq-dev libre2-dev libssl-dev liburing-dev libyaml-cpp-dev \
+        libzstd-dev locales ninja-build postgresql-16 python3-dev python3-venv zlib1g-dev \
+    && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 10001 app \
@@ -22,6 +23,7 @@ COPY --chown=app:app backend/CMakeLists.txt backend/CMakePresets.json ./
 COPY --chown=app:app backend/src/ ./src/
 COPY --chown=app:app backend/configs/ ./configs/
 COPY --chown=app:app backend/tests/ ./tests/
+COPY --chown=app:app backend/db/ ./db/
 
 RUN cmake --preset docker \
     && cmake --build --preset docker \
