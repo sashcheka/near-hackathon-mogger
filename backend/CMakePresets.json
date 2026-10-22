@@ -2,7 +2,7 @@
   "version": 5,
   "configurePresets": [
     {
-      "name": "default",
+      "name": "docker",
       "displayName": "Debug backend",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
@@ -13,42 +13,26 @@
         "USERVER_USE_STATIC_LIBS": "OFF",
         "USERVER_BUILD_TESTS": "OFF",
         "USERVER_BUILD_SAMPLES": "OFF",
-        "USERVER_FEATURE_UTEST": "OFF"
-      }
-    },
-    {
-      "name": "docker",
-      "inherits": "default",
-      "cacheVariables": {
+        "USERVER_FEATURE_UTEST": "OFF",
         "USERVER_USE_CCACHE": "OFF"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "default",
-      "configurePreset": "default",
+      "name": "docker",
+      "configurePreset": "docker",
       "targets": ["community_treasury_backend"],
       "jobs": 2
-    },
-    {
-      "name": "docker",
-      "inherits": "default",
-      "configurePreset": "docker"
     }
   ],
   "testPresets": [
     {
-      "name": "default",
-      "configurePreset": "default",
+      "name": "docker",
+      "configurePreset": "docker",
       "output": {
         "outputOnFailure": true
       }
-    },
-    {
-      "name": "docker",
-      "inherits": "default",
-      "configurePreset": "docker"
     }
   ]
 }

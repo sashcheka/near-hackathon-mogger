@@ -28,4 +28,4 @@ RUN cmake --preset docker \
     && ctest --preset docker
 
 EXPOSE 8080
-CMD ["./build/community_treasury_backend", "--config", "configs/static_config.yaml", "--config_vars", "configs/docker_vars.yaml"]
+CMD ["./build/community_treasury_backend", "--config", "configs/static_config.yaml"]
