@@ -24,6 +24,7 @@ if(BUILD_TESTING)
         SERVICE_TARGET community_treasury_backend
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests"
         PYTEST_ARGS
+            "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
             "--service-config=${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
             "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/community_treasury_backend"
     )
