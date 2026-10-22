@@ -1,0 +1,28 @@
+{
+  "name": "C++ backend",
+  "image": "near-hackathon-mogger-backend:latest",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",
+  "workspaceFolder": "/app",
+  "remoteUser": "app",
+  "updateRemoteUserUID": false,
+  "overrideCommand": true,
+  "shutdownAction": "stopContainer",
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-backend-dev-build,target=/app/backend/build,type=volume"
+  ],
+  "forwardPorts": [8080],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "cmake.sourceDirectory": "${workspaceFolder}/backend",
+        "cmake.useCMakePresets": "always",
+        "cmake.configureOnOpen": false,
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+      }
+    }
+  }
+}
