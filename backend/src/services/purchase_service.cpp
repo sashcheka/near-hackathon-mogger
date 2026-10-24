@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <userver/logging/log.hpp>
+
 #include "../repositories/products_repository.hpp"
 
 namespace community_treasury {
@@ -19,6 +21,8 @@ Order PurchaseService::Create(const std::string& prompt,
   const auto products = products_repository::List(cluster_);
   // No database transaction or connection is held during model inference.
   const auto selection = model_.Select(prompt, products);
+  LOG_INFO() << "Model selected product_id=" << selection.product_id
+             << " quantity=" << selection.quantity;
   return orders_.Create({selection.product_id, selection.quantity, budget});
 }
 
