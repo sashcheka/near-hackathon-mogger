@@ -65,7 +65,11 @@ curl -i http://localhost:8080/orders \
   -d '{"product_id":"toilet-paper","quantity":1,"budget_yocto":"3000000000000000000000000"}'
 ```
 
-Code flow: `handlers/orders_handler` parses HTTP/JSON, `services/orders_service` validates and controls the transaction, `repositories/orders_repository` executes parameterized SQL, and `domain/order.hpp` defines shared types. Integration tests cover persisted snapshots, rejected requests, and large exact amounts. Orders runtime validation is pending.
+Code flow: `handlers/orders_handler` parses HTTP/JSON, `services/orders_service` validates and controls the transaction, `repositories/orders_repository` executes parameterized SQL, and `domain/order.hpp` defines shared types. Integration tests cover persisted snapshots, rejected requests, and large exact amounts. Direct order creation is verified; test execution has not been confirmed.
+
+## AI purchase requests
+
+`POST /purchase-requests` accepts `prompt` and `budget_yocto`, selects a product through local Ollama, and uses the existing order service to create an unpaid order. See [local model setup](../docs/OLLAMA.md) for installation, configuration, API errors, and verification commands. Runtime validation is pending.
 
 ## Stop
 
@@ -138,7 +142,7 @@ Each migration has `-- migrate:up` and `-- migrate:down` sections. dbmate record
 
 The first migration uses `CREATE TABLE IF NOT EXISTS` to adopt the matching `products` table from our previous setup. It preserves existing rows and records the version; it does not reconcile arbitrary schema differences. Keep the existing PostgreSQL volume. Rolling back this initial migration drops `products` and its data.
 
-Tests apply migrations before discovering tables, keep the version table between tests, and restore only demo rows per test. A regression test simulates adoption of the previous catalog and verifies that repeated migration runs preserve its data. The initial migration setup is verified; the new orders migration awaits runtime validation.
+Tests apply migrations before discovering tables, keep the version table between tests, and restore only demo rows per test. A regression test simulates adoption of the previous catalog and verifies that repeated migration runs preserve its data. The schema is verified through direct order creation; the expanded test suite awaits confirmation.
 
 ## Configuration
 
@@ -148,11 +152,15 @@ The development image uses Ubuntu 24.04 with build/test tools. The server listen
 | --- | --- |
 | `src/main.cpp` | Health handler, DNS resolver, and PostgreSQL component registration |
 | `src/handlers/products_handler.hpp` | Catalog handler declaration and PostgreSQL cluster dependency |
-| `src/handlers/products_handler.cpp` | Catalog SELECT and JSON response serialization |
+| `src/handlers/products_handler.cpp` | Catalog JSON response serialization |
 | `src/handlers/orders_handler.*` | Order request parsing, response serialization, and error mapping |
 | `src/services/orders_service.*` | Purchase validation and transaction boundary |
 | `src/repositories/orders_repository.*` | Catalog locking and parameterized order insertion |
 | `src/domain/order.hpp` | Order request, result, and error types |
+| `src/handlers/purchase_handler.*` | AI purchase HTTP interface and configuration |
+| `src/services/purchase_service.*` | Model selection followed by order validation |
+| `src/clients/ollama_client.*` | Local model HTTP protocol and response checks |
+| `src/repositories/products_repository.*` | Shared catalog SELECT and typed row mapping |
 | `configs/static_config.yaml` | Worker threads, HTTP listener, route, and logging |
 | `CMakeLists.txt` | userver dependency, executable, and test registration |
 | `CMakePresets.json` | One `docker` preset for configure, build, and test |

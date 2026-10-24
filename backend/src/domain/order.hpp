@@ -3,8 +3,11 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace community_treasury {
+
+void ValidateBudget(std::string_view budget);
 
 struct CreateOrderRequest {
   std::string product_id;

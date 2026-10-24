@@ -2,6 +2,7 @@
 #include <string_view>
 
 #include <userver/clients/dns/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/http/content_type.hpp>
@@ -13,6 +14,7 @@
 
 #include "handlers/orders_handler.hpp"
 #include "handlers/products_handler.hpp"
+#include "handlers/purchase_handler.hpp"
 
 namespace community_treasury {
 
@@ -39,6 +41,9 @@ int main(int argc, char* argv[]) {
                               .Append<community_treasury::HealthHandler>()
                               .Append<community_treasury::ProductsHandler>()
                               .Append<community_treasury::OrdersHandler>()
+                              .Append<community_treasury::PurchaseHandler>()
+                              .AppendComponentList(
+                                  userver::clients::http::ComponentList())
                               .Append<userver::clients::dns::Component>()
                               .Append<userver::components::TestsuiteSupport>()
                               .Append<userver::components::Postgres>("postgres-db");

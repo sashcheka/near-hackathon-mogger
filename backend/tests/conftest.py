@@ -10,6 +10,18 @@ pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
 @pytest.fixture(scope='session')
+def userver_config_http_client(userver_config_http_client, mockserver_info):
+    def patch(config, config_vars):
+        userver_config_http_client(config, config_vars)
+        components = config['components_manager']['components']
+        components['handler-purchase']['ollama-url'] = mockserver_info.url('/api/chat')
+        components['handler-purchase']['ollama-model'] = 'test-model'
+        components['http-client-core']['testsuite-timeout'] = '500ms'
+
+    return patch
+
+
+@pytest.fixture(scope='session')
 def migrate_database(service_source_dir):
     dbmate = shutil.which('dbmate')
     if dbmate is None:

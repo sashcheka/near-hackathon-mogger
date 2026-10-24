@@ -1,6 +1,5 @@
 #include "orders_service.hpp"
 
-#include <algorithm>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/transaction.hpp>
@@ -14,11 +13,7 @@ namespace {
 using Amount = boost::multiprecision::uint256_t;
 
 Amount ParseAmount(const std::string& value) {
-  if (value.empty() || value.size() > 39 || value.front() == '0' ||
-      !std::all_of(value.begin(), value.end(),
-                   [](char c) { return c >= '0' && c <= '9'; })) {
-    throw OrderError(OrderErrorCode::kInvalidRequest);
-  }
+  ValidateBudget(value);
   Amount result = 0;
   for (const char digit : value) result = result * 10 + (digit - '0');
   return result;

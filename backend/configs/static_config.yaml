@@ -36,6 +36,20 @@ components_manager:
       method: POST
       task_processor: main-task-processor
 
+    handler-purchase:
+      path: /purchase-requests
+      method: POST
+      task_processor: main-task-processor
+      ollama-url#env: OLLAMA_CHAT_URL
+      ollama-url#fallback: ''
+      ollama-model#env: OLLAMA_MODEL
+      ollama-model#fallback: qwen3:1.7b
+
+    http-client: {}
+    http-client-core:
+      threads: 1
+      fs-task-processor: fs-task-processor
+
     dns-client:
       fs-task-processor: fs-task-processor
 

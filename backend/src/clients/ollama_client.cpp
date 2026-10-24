@@ -6,6 +6,7 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/logging/log.hpp>
 
 namespace community_treasury {
 namespace json = userver::formats::json;
@@ -65,7 +66,11 @@ ProductSelection OllamaClient::Select(
                               .retry(1)
                               .follow_redirects(false)
                               .perform();
-    if (!response->IsOk()) throw ModelError(ModelErrorCode::kUnavailable);
+    if (!response->IsOk()) {
+      LOG_WARNING() << "Ollama returned HTTP status "
+                    << static_cast<int>(response->status_code());
+      throw ModelError(ModelErrorCode::kUnavailable);
+    }
     const auto envelope = json::FromString(response->body_view());
     if (!envelope["done"].As<bool>())
       throw ModelError(ModelErrorCode::kInvalidResponse);
@@ -85,10 +90,13 @@ ProductSelection OllamaClient::Select(
       throw ModelError(ModelErrorCode::kInvalidResponse);
     return {id, quantity};
   } catch (const userver::clients::http::TimeoutException&) {
+    LOG_WARNING() << "Ollama request timed out";
     throw ModelError(ModelErrorCode::kTimeout);
   } catch (const userver::clients::http::BaseException&) {
+    LOG_WARNING() << "Ollama request failed";
     throw ModelError(ModelErrorCode::kUnavailable);
   } catch (const json::Exception&) {
+    LOG_WARNING() << "Ollama returned invalid JSON";
     throw ModelError(ModelErrorCode::kInvalidResponse);
   }
 }
