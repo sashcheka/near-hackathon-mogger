@@ -31,5 +31,8 @@ RUN cmake --preset docker \
     && cmake --build --preset docker \
     && ctest --preset docker
 
+# Initialize the Codex volume with ownership matching the development user.
+RUN install -d -m 0700 /home/app/.codex
+
 EXPOSE 8080
 CMD ["./build/community_treasury_backend", "--config", "configs/static_config.yaml"]

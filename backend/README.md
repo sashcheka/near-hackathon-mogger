@@ -120,6 +120,23 @@ The server runs in the foreground; stop it with `Ctrl+C`. VS Code forwards port 
 
 The development container uses the existing `near-hackathon-mogger-backend:latest` image. After changing image dependencies, rerun `docker compose build backend` on the host and **Dev Containers: Rebuild Container**. Changes to CMake settings or dependency versions may also require reconfiguration of the persistent build directory. Close the remote connection to stop the development container, then run `docker compose stop postgres` and `colima stop` on the host if desired. Rebuilding the dev container replaces its writable filesystem; data outside mounted folders or volumes is not preserved.
 
+### Codex history
+
+The dev container mounts a separate `${localWorkspaceFolderBasename}-codex-data` volume at `/home/app/.codex`. It preserves Codex sessions, configuration, and file-based authentication across container rebuilds. The image initializes the directory with permissions for `app`. Do not remove this volume when cleaning build output. Keep a separate backup of important sessions; a volume is persistent storage, not a backup.
+
+When first adding this mount, existing files in an old container's writable layer are not automatically migrated. Back them up before rebuilding if they are still needed. A new empty volume may require signing in to Codex again. Adding the volume cannot restore a previously deleted container's files.
+
+To copy the host's existing session files into the running development container, run on the host from the repository root after reopening the updated dev container:
+
+```sh
+dev_container=$(docker ps -q --filter "label=devcontainer.local_folder=$PWD")
+docker exec -u app "$dev_container" mkdir -p /home/app/.codex/sessions
+docker cp "$HOME/.codex/sessions/." "$dev_container":/home/app/.codex/sessions/
+docker exec -u root "$dev_container" chown -R app:app /home/app/.codex/sessions
+```
+
+This requires exactly one running dev container for this checkout. It copies transcripts without replacing the container's configuration, credentials, or state database. Wait for active Codex requests to finish before copying. Reload the VS Code window afterward; older project paths or history indexing may still affect which sessions appear. Host sessions do not contain later messages that existed only in the deleted container.
+
 ## PostgreSQL
 
 Compose uses PostgreSQL 16 with a named `postgres-data` volume and no published database port. The database/user are `treasury`; `local-dev-only` is a development password. The userver configuration accepts an optional `POSTGRES_DSN` environment variable and otherwise uses these local Compose credentials. It uses the system libpq library without optional userver portal patches.

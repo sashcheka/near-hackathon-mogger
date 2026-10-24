@@ -9,7 +9,8 @@
   "shutdownAction": "stopContainer",
   "runArgs": ["--network=near-hackathon-mogger_default"],
   "mounts": [
-    "source=${localWorkspaceFolderBasename}-backend-dev-build,target=/app/backend/build,type=volume"
+    "source=${localWorkspaceFolderBasename}-backend-dev-build,target=/app/backend/build,type=volume",
+    "source=${localWorkspaceFolderBasename}-codex-data,target=/home/app/.codex,type=volume"
   ],
   "forwardPorts": [8080],
   "customizations": {
