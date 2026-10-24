@@ -148,6 +148,8 @@ Tests apply migrations before discovering tables, keep the version table between
 
 See the [code walkthrough](../docs/CODE_WALKTHROUGH.md) for recent commits, request flow, and userver terminology.
 
+Logging defaults to `warning`: routine request, SQL, and component startup messages are suppressed. Set `LOG_LEVEL=info` when diagnosing requests, including model selections, or `LOG_LEVEL=debug` for more detail. Restart the service after changing the environment; C++ rebuilding is not required for this YAML change. Testsuite manages its own log level.
+
 The development image uses Ubuntu 24.04 with build/test tools. The server listens on `0.0.0.0` inside the container; Compose publishes port 8080 only on the host's localhost. Host build output and local CMake presets are excluded from the image.
 
 | File | Purpose |

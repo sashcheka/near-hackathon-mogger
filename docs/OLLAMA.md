@@ -36,6 +36,8 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
 
 `OLLAMA_MODEL` overrides the default `qwen3:1.7b`. `OLLAMA_CHAT_URL` is the full chat endpoint, not a base URL. An empty URL disables model requests with HTTP 503 while the other endpoints remain available. For a native backend on the host, use `http://localhost:11434/api/chat`; Docker Desktop uses `host.docker.internal`. Compose backend users must explicitly pass these variables into that container.
 
+Backend logging defaults to warnings and errors. To see `Model selected product_id=... quantity=...` and framework diagnostics, add `LOG_LEVEL=info` before the backend launch command.
+
 ## Request
 
 From another terminal:

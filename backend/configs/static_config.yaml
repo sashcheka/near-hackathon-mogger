@@ -18,7 +18,8 @@ components_manager:
       loggers:
         default:
           file_path: '@stderr'
-          level: info
+          level#env: LOG_LEVEL
+          level#fallback: warning
           overflow_behavior: discard
 
     handler-health:
