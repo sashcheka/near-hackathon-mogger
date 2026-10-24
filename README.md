@@ -40,4 +40,4 @@ The backend derives prices and recipients from its catalog, validates spending l
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health`. PostgreSQL configuration, a product schema, and demo catalog data are added; validation of this database step is pending. See [backend setup](backend/README.md) for build, test, and run commands. Catalog endpoints, orders, model integration, payments, and frontend implementation are pending.
+The backend exposes `GET /health` and implements `GET /products` to read the PostgreSQL demo catalog; validation of the new endpoint is pending. See [backend setup](backend/README.md) for build, test, and run commands. Versioned migrations, orders, model integration, payments, and frontend implementation are pending.

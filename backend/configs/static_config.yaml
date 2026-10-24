@@ -26,6 +26,11 @@ components_manager:
       method: GET
       task_processor: main-task-processor
 
+    handler-products:
+      path: /products
+      method: GET
+      task_processor: main-task-processor
+
     dns-client:
       fs-task-processor: fs-task-processor
 

@@ -1,6 +1,6 @@
 # Backend
 
-C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` returns HTTP 200 and `{"status":"ok"}`; it reports HTTP liveness, not ongoing database availability. The product schema and seed data are in `db/treasury.sql`; the catalog API is the next step.
+C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` returns HTTP 200 and `{"status":"ok"}`; it reports HTTP liveness, not ongoing database availability. `GET /products` reads the catalog from PostgreSQL. The product schema and seed data are in `db/treasury.sql`.
 
 ## Run
 
@@ -18,18 +18,29 @@ Compose starts PostgreSQL before the backend. The image build compiles the servi
 
 ```sh
 curl -i http://localhost:8080/health
+curl -i http://localhost:8080/products
 docker compose ps
 docker compose logs --tail=100 backend
 docker compose exec postgres psql -U treasury -d treasury -c "SELECT id, name, price_yocto FROM products ORDER BY id;"
 ```
 
-Expected: HTTP 200, `{"status":"ok"}`, and a healthy container. In Windows PowerShell, use `curl.exe`.
+Expected: HTTP 200, `{"status":"ok"}` from `/health`, a catalog response from `/products`, and a healthy container. In Windows PowerShell, use `curl.exe`.
 
 Rerun the tests in a temporary container:
 
 ```sh
 docker compose run --rm --no-deps backend ctest --preset docker
 ```
+
+## Catalog API
+
+`GET /products` returns `{"products": [...]}` with products ordered by `id`. Each entry contains `id`, `name`, and `price_yocto`. Prices are decimal integer strings to preserve precision in JavaScript. An empty catalog returns HTTP 200 and `{"products": []}`.
+
+```json
+{"products":[{"id":"toilet-paper","name":"Toilet paper","price_yocto":"2000000000000000000000000"}]}
+```
+
+The example shows one product; the seeded catalog has three. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. Tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price. Endpoint build/runtime validation is pending.
 
 ## Stop
 
@@ -82,7 +93,7 @@ PostgreSQL runs the initialization script only when the data volume is empty. La
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/treasury.sql
 ```
 
-The script preserves existing product rows. Tests check seeded prices and reject non-positive prices. Database integration has not yet been built or run after this change.
+The script preserves existing product rows. Database constraint tests reject non-positive prices; HTTP tests verify that `/products` reads the catalog correctly.
 
 ## Configuration
 
@@ -91,6 +102,8 @@ The development image uses Ubuntu 24.04 with build/test tools. The server listen
 | File | Purpose |
 | --- | --- |
 | `src/main.cpp` | Health handler, DNS resolver, and PostgreSQL component registration |
+| `src/handlers/products_handler.hpp` | Catalog handler declaration and PostgreSQL cluster dependency |
+| `src/handlers/products_handler.cpp` | Catalog SELECT and JSON response serialization |
 | `configs/static_config.yaml` | Worker threads, HTTP listener, route, and logging |
 | `CMakeLists.txt` | userver dependency, executable, and test registration |
 | `CMakePresets.json` | One `docker` preset for configure, build, and test |

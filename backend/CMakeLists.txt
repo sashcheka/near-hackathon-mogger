@@ -14,7 +14,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(userver)
 userver_setup_environment()
 
-add_executable(community_treasury_backend src/main.cpp)
+add_executable(community_treasury_backend
+    src/main.cpp
+    src/handlers/products_handler.cpp
+)
 target_compile_features(community_treasury_backend PRIVATE cxx_std_20)
 target_link_libraries(community_treasury_backend PRIVATE userver::postgresql)
 
