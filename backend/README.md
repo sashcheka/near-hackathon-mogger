@@ -113,7 +113,17 @@ After changing environment dependencies, use **Dev Containers: Rebuild Container
 
 Close the remote connection to stop the development container, then run `docker compose stop postgres` and `colima stop` on the host if desired. Rebuilding the dev container replaces its writable filesystem; data outside mounted folders or volumes is not preserved.
 
-### Codex history
+### Extensions and Codex history
+
+The `${localWorkspaceFolderBasename}-vscode-extensions` volume preserves installed VS Code extensions across rebuilds. C++, CMake Tools, and Codex (`openai.chatgpt`) are also declared in `devcontainer.json`, so VS Code installs them automatically in a fresh environment. Extension updates may still download new versions. VS Code Server itself uses the extension's normal setup and cache.
+
+Before the first rebuild that adds the extensions mount, wait for any extension installations to finish and run this from the host repository root while the current dev container is still running:
+
+```sh
+bash scripts/prepare-dev-storage.sh
+```
+
+The script copies existing extensions directly to their volume and repairs Codex directory ownership. It does not build C++, copy host credentials, or read chat contents. It requires one running dev container for this checkout. After it completes, run **Dev Containers: Rebuild Container**. Future rebuilds reuse the volume; the script skips copying if the expected volume is already mounted. Do not delete this volume when cleaning build output.
 
 The dev container mounts a separate `${localWorkspaceFolderBasename}-codex-data` volume at `/home/app/.codex`. It preserves Codex sessions, configuration, and file-based authentication across container rebuilds. The image initializes the directory with permissions for `app`. Do not remove this volume when cleaning build output. Keep a separate backup of important sessions; a volume is persistent storage, not a backup.
 

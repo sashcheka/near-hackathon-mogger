@@ -17,7 +17,8 @@ COPY --from=ghcr.io/amacneil/dbmate:2.37.0 /usr/local/bin/dbmate /usr/local/bin/
 
 RUN useradd --create-home --uid 10001 app \
     && install -d -o app -g app /app/backend/build \
-    && install -d -m 0700 -o app -g app /home/app/.codex
+    && install -d -m 0700 -o app -g app /home/app/.codex \
+    && install -d -o app -g app /home/app/.vscode-server /home/app/.vscode-server/extensions
 
 USER app
 WORKDIR /app/backend

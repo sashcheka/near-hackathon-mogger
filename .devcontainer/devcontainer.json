@@ -14,14 +14,16 @@
   "runArgs": ["--network=near-hackathon-mogger_default"],
   "mounts": [
     "source=${localWorkspaceFolderBasename}-backend-dev-build,target=/app/backend/build,type=volume",
-    "source=${localWorkspaceFolderBasename}-codex-data,target=/home/app/.codex,type=volume"
+    "source=${localWorkspaceFolderBasename}-codex-data,target=/home/app/.codex,type=volume",
+    "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/app/.vscode-server/extensions,type=volume"
   ],
   "forwardPorts": [8080],
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-vscode.cpptools",
-        "ms-vscode.cmake-tools"
+        "ms-vscode.cmake-tools",
+        "openai.chatgpt"
       ],
       "settings": {
         "cmake.sourceDirectory": "${workspaceFolder}/backend",
