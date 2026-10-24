@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS development
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -16,11 +16,14 @@ RUN apt-get update \
 COPY --from=ghcr.io/amacneil/dbmate:2.37.0 /usr/local/bin/dbmate /usr/local/bin/dbmate
 
 RUN useradd --create-home --uid 10001 app \
-    && mkdir -p /app/backend \
-    && chown app:app /app/backend
+    && install -d -o app -g app /app/backend/build \
+    && install -d -m 0700 -o app -g app /home/app/.codex
 
 USER app
 WORKDIR /app/backend
+
+FROM development AS application
+
 COPY --chown=app:app backend/CMakeLists.txt backend/CMakePresets.json ./
 COPY --chown=app:app backend/src/ ./src/
 COPY --chown=app:app backend/configs/ ./configs/
@@ -30,9 +33,6 @@ COPY --chown=app:app backend/db/ ./db/
 RUN cmake --preset docker \
     && cmake --build --preset docker \
     && ctest --preset docker
-
-# Initialize the Codex volume with ownership matching the development user.
-RUN install -d -m 0700 /home/app/.codex
 
 EXPOSE 8080
 CMD ["./build/community_treasury_backend", "--config", "configs/static_config.yaml"]

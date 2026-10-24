@@ -83,30 +83,21 @@ With Colima, then run `colima stop` to stop the VM. Containers, images, build ca
 
 Use the Dev Containers extension so CMake and C++ IntelliSense can access the Linux compiler and userver headers. Configuring CMake directly on the host requires a separate native toolchain.
 
-From a host terminal in the repository root, start Colima if needed and prepare the image:
+From a host terminal in the repository root, start Colima if needed and prepare PostgreSQL:
 
 ```sh
 colima start
 docker compose up -d --wait postgres
 docker compose run --rm migrate
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
-docker compose build backend
 docker compose stop backend
 ```
 
-Install `ms-vscode-remote.remote-containers` in VS Code and open the repository root. Run **Dev Containers: Reopen in Container**, then **CMake: Select Configure Preset** and choose **Debug backend** (the `docker` preset), then **CMake: Configure**. If the dev container already exists, use **Dev Containers: Rebuild Container** after preparing the updated image. The C++ and CMake Tools extensions are installed inside the development container.
+Install `ms-vscode-remote.remote-containers` in VS Code and open the repository root. Run **Dev Containers: Reopen in Container**, then **CMake: Select Configure Preset** and choose **Debug backend** (the `docker` preset), then **CMake: Configure**. If the dev container already exists, use **Dev Containers: Rebuild Container**. VS Code builds only the Dockerfile's `development` stage: Ubuntu, compiler, libraries, and tools. This stage does not copy application sources or run CMake. The C++ and CMake Tools extensions are installed inside the development container.
 
 PostgreSQL must be started first: it creates the `near-hackathon-mogger_default` Docker network that the development container joins. Both the Compose backend and dev container reach the database at `postgres:5432`. Run Docker/Compose commands on the host; Docker CLI is not installed in the dev container.
 
-The image includes dbmate 2.37.0. If you keep the current dev container instead of rebuilding it, install just this tool from the pinned image. Run on the host, replacing `priceless_liskov` with your dev container name if different:
-
-```sh
-dbmate_copy_container=$(docker create ghcr.io/amacneil/dbmate:2.37.0)
-docker cp "$dbmate_copy_container":/usr/local/bin/dbmate - | docker exec -i -u root priceless_liskov tar -x -C /usr/local/bin
-docker rm "$dbmate_copy_container"
-```
-
-This copies the executable without replacing the dev container or its Codex history. In the VS Code container terminal:
+The development environment includes dbmate 2.37.0. Build, test, and run the C++ application in the VS Code container terminal:
 
 ```sh
 cd /app/backend
@@ -116,15 +107,24 @@ ctest --preset docker
 ./build/community_treasury_backend --config configs/static_config.yaml
 ```
 
-The server runs in the foreground; stop it with `Ctrl+C`. VS Code forwards port 8080. After source changes, rebuild and restart the binary. Source edits are saved directly to the host repository. Build output and fetched dependencies stay in a named Docker volume initialized from the image's build directory.
+The server runs in the foreground; stop it with `Ctrl+C`. VS Code forwards port 8080. After source changes, rebuild and restart the binary. Source edits are saved directly to the host repository. Build output and fetched dependencies stay in a named Docker volume, reused across development container rebuilds.
 
-The development container uses the existing `near-hackathon-mogger-backend:latest` image. After changing image dependencies, rerun `docker compose build backend` on the host and **Dev Containers: Rebuild Container**. Changes to CMake settings or dependency versions may also require reconfiguration of the persistent build directory. Close the remote connection to stop the development container, then run `docker compose stop postgres` and `colima stop` on the host if desired. Rebuilding the dev container replaces its writable filesystem; data outside mounted folders or volumes is not preserved.
+After changing environment dependencies, use **Dev Containers: Rebuild Container**. For ordinary C++ edits, use `cmake --build --preset docker` inside the container. Changes to CMake settings or dependency versions may also require reconfiguration of the persistent build directory. `docker compose build backend` remains a separate application image build; it runs the later `application` stage, which compiles and tests the backend. It is not required for the development workflow.
+
+Close the remote connection to stop the development container, then run `docker compose stop postgres` and `colima stop` on the host if desired. Rebuilding the dev container replaces its writable filesystem; data outside mounted folders or volumes is not preserved.
 
 ### Codex history
 
 The dev container mounts a separate `${localWorkspaceFolderBasename}-codex-data` volume at `/home/app/.codex`. It preserves Codex sessions, configuration, and file-based authentication across container rebuilds. The image initializes the directory with permissions for `app`. Do not remove this volume when cleaning build output. Keep a separate backup of important sessions; a volume is persistent storage, not a backup.
 
 When first adding this mount, existing files in an old container's writable layer are not automatically migrated. Back them up before rebuilding if they are still needed. A new empty volume may require signing in to Codex again. Adding the volume cannot restore a previously deleted container's files.
+
+If the volume was first created with an older image and is owned by `root`, repair its ownership once from the host while the dev container is running:
+
+```sh
+dev_container=$(docker ps -q --filter "label=devcontainer.local_folder=$PWD")
+docker exec -u root "$dev_container" chown -R app:app /home/app/.codex
+```
 
 To copy the host's existing session files into the running development container, run on the host from the repository root after reopening the updated dev container:
 

@@ -1,6 +1,10 @@
 {
   "name": "C++ backend",
-  "image": "near-hackathon-mogger-backend:latest",
+  "build": {
+    "dockerfile": "../backend/Dockerfile",
+    "context": "..",
+    "target": "development"
+  },
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",
   "workspaceFolder": "/app",
   "remoteUser": "app",
