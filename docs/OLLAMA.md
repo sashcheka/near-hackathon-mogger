@@ -48,11 +48,19 @@ curl -i http://localhost:8080/purchase-requests \
 
 The endpoint accepts exactly `prompt` and `budget_yocto`. Prompt length is 1–2000 UTF-8 bytes and cannot consist only of spaces, tabs, or line breaks. Budget follows the `/orders` amount format. A successful request returns HTTP 201 with the same unpaid order representation as `POST /orders`.
 
-The model receives product IDs and names. It returns only an ID and quantity under a [JSON schema](https://docs.ollama.com/capabilities/structured-outputs). The client validates the response independently; the order service rereads the current price and checks the budget in its own transaction. No transaction is held during inference. The model cannot set a price or authorize a payment. A valid selection can still misunderstand the user's intent; the user must review the order before paying.
+The model receives product IDs and names. Its instructions prefer standard products for generic requests and upgraded variants only when explicitly requested. This is a model instruction, not a deterministic guarantee. It returns only an ID and quantity under a [JSON schema](https://docs.ollama.com/capabilities/structured-outputs). The client validates the response independently; the order service rereads the current price and checks the budget in its own transaction. No transaction is held during inference. The model cannot set a price or authorize a payment. A valid selection can still misunderstand the user's intent; the user must review the order before paying.
 
 Errors: 400 `invalid_request`, 404 `no_matching_product` or `product_not_found` if a selected product was deleted, 409 `budget_exceeded`, 502 `invalid_model_response`, 503 `model_unavailable`, and 504 `model_timeout`. Model failure creates no order; there is no automatic fallback selection. Requests have a 60-second model timeout, one attempt, no redirects, a 2048-token context, and at most 128 generated tokens. Thinking and streaming are disabled.
 
-Integration tests use an HTTP mock server; they need neither Ollama nor downloaded weights. They cover saved orders, invalid selections, budget rejection, upstream errors, and timeouts. Compilation, tests, container-to-host access, and actual model behavior still require runtime validation.
+Integration tests use an HTTP mock server; they need neither Ollama nor downloaded weights. They cover saved orders, invalid selections, budget rejection, upstream errors, and timeouts. The backend has compiled and reached real Ollama. The updated selection instructions and test-suite execution still await verification.
+
+To check actual model behavior, run in a second dev container terminal with the backend and Ollama running and the default demo catalog present:
+
+```sh
+python3 /app/backend/scripts/check_model_selection.py
+```
+
+This creates unpaid demo orders and checks generic, quantity-specific, explicit premium, and unavailable-product requests. It returns a nonzero exit status on failure. Unlike mocked HTTP tests, this checks the model's actual choices; passing these four examples does not establish general selection accuracy.
 
 ## Stop
 
