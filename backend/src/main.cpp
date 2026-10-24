@@ -11,6 +11,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include "handlers/orders_handler.hpp"
 #include "handlers/products_handler.hpp"
 
 namespace community_treasury {
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
   const auto components = userver::components::MinimalServerComponentList()
                               .Append<community_treasury::HealthHandler>()
                               .Append<community_treasury::ProductsHandler>()
+                              .Append<community_treasury::OrdersHandler>()
                               .Append<userver::clients::dns::Component>()
                               .Append<userver::components::TestsuiteSupport>()
                               .Append<userver::components::Postgres>("postgres-db");

@@ -31,6 +31,11 @@ components_manager:
       method: GET
       task_processor: main-task-processor
 
+    handler-orders:
+      path: /orders
+      method: POST
+      task_processor: main-task-processor
+
     dns-client:
       fs-task-processor: fs-task-processor
 

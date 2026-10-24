@@ -20,8 +20,8 @@ The store is a demo implementation. Product delivery is simulated. Autonomous sp
 ## Implementation sequence
 
 1. Build the C++ service and implement `GET /health`. **Complete:** build, HTTP integration test, and standalone endpoint verification pass.
-2. Add PostgreSQL, the demo catalog, and order storage. PostgreSQL and `GET /products` work. Versioned dbmate migrations and separate demo seeds are implemented; migration validation and order storage remain.
-3. Implement deterministic purchase validation and focused tests.
+2. Add PostgreSQL, the demo catalog, and order storage. PostgreSQL, `GET /products`, and dbmate setup are verified. The orders migration and `POST /orders` are implemented; runtime validation is pending.
+3. Implement deterministic purchase validation and focused tests. Implemented for product, quantity, and per-order budget, with exact arithmetic and transactional price snapshots; test execution is pending.
 4. Connect the model to product selection.
 5. Add the React purchase screen.
 6. Connect the wallet and verify Testnet payments end to end.

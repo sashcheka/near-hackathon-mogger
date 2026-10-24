@@ -1,6 +1,6 @@
 # Backend
 
-C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` returns HTTP 200 and `{"status":"ok"}`; it reports HTTP liveness, not ongoing database availability. `GET /products` reads the catalog from PostgreSQL. Schema migrations are in `db/migrations/`; optional demo data is in `db/seed.sql`.
+C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` reports HTTP liveness, `GET /products` reads the catalog, and `POST /orders` validates and stores unpaid orders. Schema migrations are in `db/migrations/`; optional demo data is in `db/seed.sql`.
 
 ## Run
 
@@ -44,6 +44,28 @@ docker compose run --rm --no-deps backend ctest --preset docker
 ```
 
 The example shows one product; the seeded catalog has three. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. HTTP tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price.
+
+## Orders API
+
+`POST /orders` accepts exactly these fields:
+
+```json
+{"product_id":"toilet-paper","quantity":1,"budget_yocto":"3000000000000000000000000"}
+```
+
+Quantity must be an integer from 1 to 1000. Budget must be a positive decimal integer string, at most 39 digits, without leading zeros. The budget limits this order only; it does not reserve wallet funds or enforce a shared spending allowance.
+
+HTTP 201 returns `id` (UUID), `product_id`, `quantity`, `unit_price_yocto`, `total_yocto`, `budget_yocto`, and `status: pending_payment`. Prices come from the database; monetary fields are strings. A shared row lock keeps the catalog price stable until the order snapshot is committed. Amount calculations use exact 256-bit integers; database constraints also enforce the total and budget.
+
+Errors use `{"error":"code"}`: HTTP 400 `invalid_request`, 404 `product_not_found`, or 409 `budget_exceeded`. Rejected requests create no order. Database failures remain server errors. Each successful POST creates a new unpaid order; this endpoint does not call AI or transfer funds.
+
+```sh
+curl -i http://localhost:8080/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"product_id":"toilet-paper","quantity":1,"budget_yocto":"3000000000000000000000000"}'
+```
+
+Code flow: `handlers/orders_handler` parses HTTP/JSON, `services/orders_service` validates and controls the transaction, `repositories/orders_repository` executes parameterized SQL, and `domain/order.hpp` defines shared types. Integration tests cover persisted snapshots, rejected requests, and large exact amounts. Orders runtime validation is pending.
 
 ## Stop
 
@@ -116,7 +138,7 @@ Each migration has `-- migrate:up` and `-- migrate:down` sections. dbmate record
 
 The first migration uses `CREATE TABLE IF NOT EXISTS` to adopt the matching `products` table from our previous setup. It preserves existing rows and records the version; it does not reconcile arbitrary schema differences. Keep the existing PostgreSQL volume. Rolling back this initial migration drops `products` and its data.
 
-Tests apply migrations before discovering tables, keep the version table between tests, and restore only demo rows per test. A regression test simulates adoption of the previous catalog and verifies that repeated migration runs preserve its data. Migration runtime validation is pending.
+Tests apply migrations before discovering tables, keep the version table between tests, and restore only demo rows per test. A regression test simulates adoption of the previous catalog and verifies that repeated migration runs preserve its data. The initial migration setup is verified; the new orders migration awaits runtime validation.
 
 ## Configuration
 
@@ -127,6 +149,10 @@ The development image uses Ubuntu 24.04 with build/test tools. The server listen
 | `src/main.cpp` | Health handler, DNS resolver, and PostgreSQL component registration |
 | `src/handlers/products_handler.hpp` | Catalog handler declaration and PostgreSQL cluster dependency |
 | `src/handlers/products_handler.cpp` | Catalog SELECT and JSON response serialization |
+| `src/handlers/orders_handler.*` | Order request parsing, response serialization, and error mapping |
+| `src/services/orders_service.*` | Purchase validation and transaction boundary |
+| `src/repositories/orders_repository.*` | Catalog locking and parameterized order insertion |
+| `src/domain/order.hpp` | Order request, result, and error types |
 | `configs/static_config.yaml` | Worker threads, HTTP listener, route, and logging |
 | `CMakeLists.txt` | userver dependency, executable, and test registration |
 | `CMakePresets.json` | One `docker` preset for configure, build, and test |
