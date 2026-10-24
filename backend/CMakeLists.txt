@@ -20,6 +20,8 @@ add_executable(community_treasury_backend
     src/handlers/orders_handler.cpp
     src/services/orders_service.cpp
     src/repositories/orders_repository.cpp
+    src/repositories/products_repository.cpp
+    src/clients/ollama_client.cpp
 )
 target_compile_features(community_treasury_backend PRIVATE cxx_std_20)
 target_link_libraries(community_treasury_backend PRIVATE userver::postgresql)
