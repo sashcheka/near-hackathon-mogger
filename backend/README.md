@@ -1,18 +1,21 @@
 # Backend
 
-C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` returns HTTP 200 and `{"status":"ok"}`; it reports HTTP liveness, not ongoing database availability. `GET /products` reads the catalog from PostgreSQL. The product schema and seed data are in `db/treasury.sql`.
+C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` returns HTTP 200 and `{"status":"ok"}`; it reports HTTP liveness, not ongoing database availability. `GET /products` reads the catalog from PostgreSQL. Schema migrations are in `db/migrations/`; optional demo data is in `db/seed.sql`.
 
 ## Run
 
 Install Docker with Compose. On macOS, use Docker Desktop or [Colima](https://github.com/abiosoft/colima) with Docker CLI and Compose. With Colima, run `colima start` first. No host C++ or Python setup is required.
 
-Run from the repository root after each code change:
+Run Docker commands on the host from the repository root. Prepare the database on first setup and after adding migrations:
 
 ```sh
-docker compose up --build -d --wait
+docker compose up -d --wait postgres
+docker compose run --rm migrate
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
+docker compose up --build -d --wait backend
 ```
 
-Compose starts PostgreSQL before the backend. The image build compiles the service and runs tests against a temporary PostgreSQL instance inside the build container. Tests do not use the persistent Compose database. The first build downloads dependencies and can take several minutes. Source changes require a rebuild.
+The seed command is optional and preserves existing product rows. After code-only changes, repeat just the last command. The image build compiles the service and runs tests against a temporary PostgreSQL instance using the same dbmate migrations. Tests do not use the persistent Compose database. The first build can take several minutes.
 
 ## Check
 
@@ -40,7 +43,7 @@ docker compose run --rm --no-deps backend ctest --preset docker
 {"products":[{"id":"toilet-paper","name":"Toilet paper","price_yocto":"2000000000000000000000000"}]}
 ```
 
-The example shows one product; the seeded catalog has three. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. Tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price. Endpoint build/runtime validation is pending.
+The example shows one product; the seeded catalog has three. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. HTTP tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price.
 
 ## Stop
 
@@ -59,6 +62,8 @@ From a host terminal in the repository root, start Colima if needed and prepare 
 ```sh
 colima start
 docker compose up -d --wait postgres
+docker compose run --rm migrate
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
 docker compose build backend
 docker compose stop backend
 ```
@@ -67,7 +72,15 @@ Install `ms-vscode-remote.remote-containers` in VS Code and open the repository 
 
 PostgreSQL must be started first: it creates the `near-hackathon-mogger_default` Docker network that the development container joins. Both the Compose backend and dev container reach the database at `postgres:5432`. Run Docker/Compose commands on the host; Docker CLI is not installed in the dev container.
 
-In the VS Code container terminal:
+The image includes dbmate 2.37.0. If you keep the current dev container instead of rebuilding it, install just this tool from the pinned image. Run on the host, replacing `priceless_liskov` with your dev container name if different:
+
+```sh
+dbmate_copy_container=$(docker create ghcr.io/amacneil/dbmate:2.37.0)
+docker cp "$dbmate_copy_container":/usr/local/bin/dbmate - | docker exec -i -u root priceless_liskov tar -x -C /usr/local/bin
+docker rm "$dbmate_copy_container"
+```
+
+This copies the executable without replacing the dev container or its Codex history. In the VS Code container terminal:
 
 ```sh
 cd /app/backend
@@ -85,15 +98,25 @@ The development container uses the existing `near-hackathon-mogger-backend:lates
 
 Compose uses PostgreSQL 16 with a named `postgres-data` volume and no published database port. The database/user are `treasury`; `local-dev-only` is a development password. The userver configuration accepts an optional `POSTGRES_DSN` environment variable and otherwise uses these local Compose credentials. It uses the system libpq library without optional userver portal patches.
 
-`db/treasury.sql` creates `products` and three demo products. Prices are exact integer yoctoNEAR values stored as `NUMERIC(39, 0)`, since even one NEAR exceeds a 64-bit integer in yoctoNEAR. These are Testnet prices, not dollar amounts.
+Prices are exact integer yoctoNEAR values stored as `NUMERIC(39, 0)`, since even one NEAR exceeds a 64-bit integer in yoctoNEAR. These are Testnet prices, not dollar amounts.
 
-PostgreSQL runs the initialization script only when the data volume is empty. Later schema changes need an explicit migration; editing this file does not update an existing database automatically. To apply this initial script to an existing local database without deleting its data:
+## Migrations
+
+[dbmate](https://github.com/amacneil/dbmate) 2.37.0 runs as a temporary Compose service under the `tools` profile. `docker compose run` activates that service explicitly. PostgreSQL only creates the database and user; it no longer runs an application schema initialization script.
+
+Host commands from the repository root:
 
 ```sh
-docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/treasury.sql
+docker compose run --rm migrate
+docker compose run --rm migrate status
+docker compose run --rm --user "$(id -u):$(id -g)" migrate new create_orders
 ```
 
-The script preserves existing product rows. Database constraint tests reject non-positive prices; HTTP tests verify that `/products` reads the catalog correctly.
+Each migration has `-- migrate:up` and `-- migrate:down` sections. dbmate records applied versions in `schema_migrations`. Add new files rather than editing applied migrations. Demo data stays separate in `db/seed.sql`; migrations never seed it.
+
+The first migration uses `CREATE TABLE IF NOT EXISTS` to adopt the matching `products` table from our previous setup. It preserves existing rows and records the version; it does not reconcile arbitrary schema differences. Keep the existing PostgreSQL volume. Rolling back this initial migration drops `products` and its data.
+
+Tests apply migrations before discovering tables, keep the version table between tests, and restore only demo rows per test. A regression test simulates adoption of the previous catalog and verifies that repeated migration runs preserve its data. Migration runtime validation is pending.
 
 ## Configuration
 
@@ -109,6 +132,7 @@ The development image uses Ubuntu 24.04 with build/test tools. The server listen
 | `CMakePresets.json` | One `docker` preset for configure, build, and test |
 | `Dockerfile` | Linux environment, image build, and startup command |
 | `../compose.yaml` | Container startup, localhost port, and healthcheck |
-| `db/treasury.sql` | Initial product schema and demo prices |
+| `db/migrations/` | Versioned schema changes applied by dbmate |
+| `db/seed.sql` | Optional, repeatable demo catalog insertion |
 | `../.devcontainer/devcontainer.json` | VS Code container environment and persistent Linux build volume |
 | `tests/` | HTTP integration test |

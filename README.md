@@ -9,7 +9,10 @@ Install Docker with Compose and enable Linux containers. Then:
 ```sh
 git clone https://github.com/sashcheka/near-hackathon-mogger.git
 cd near-hackathon-mogger
-docker compose up --build
+docker compose up -d --wait postgres
+docker compose run --rm migrate
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
+docker compose up --build -d --wait backend
 ```
 
 Check `http://localhost:8080/health` for `{"status":"ok"}`. Build/test details and current validation status: [backend setup](backend/README.md).
@@ -40,4 +43,4 @@ The backend derives prices and recipients from its catalog, validates spending l
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health` and implements `GET /products` to read the PostgreSQL demo catalog; validation of the new endpoint is pending. See [backend setup](backend/README.md) for build, test, and run commands. Versioned migrations, orders, model integration, payments, and frontend implementation are pending.
+The backend exposes `GET /health` and `GET /products` to read the PostgreSQL demo catalog. Versioned migrations use dbmate; validation of the new migration setup is pending. See [backend setup](backend/README.md) for build, test, and run commands. Orders, model integration, payments, and frontend implementation are pending.

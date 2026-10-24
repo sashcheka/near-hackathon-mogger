@@ -26,12 +26,23 @@ services:
       POSTGRES_PASSWORD: local-dev-only
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./backend/db/treasury.sql:/docker-entrypoint-initdb.d/001-treasury.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U treasury -d treasury"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2.37.0
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgresql://treasury:local-dev-only@postgres:5432/treasury?sslmode=disable
+    volumes:
+      - ./backend/db/migrations:/db/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--wait", "--no-dump-schema", "migrate"]
 
 volumes:
   postgres-data:

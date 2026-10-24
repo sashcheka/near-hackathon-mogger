@@ -13,6 +13,8 @@ RUN apt-get update \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=ghcr.io/amacneil/dbmate:2.37.0 /usr/local/bin/dbmate /usr/local/bin/dbmate
+
 RUN useradd --create-home --uid 10001 app \
     && mkdir -p /app/backend \
     && chown app:app /app/backend
