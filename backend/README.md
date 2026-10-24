@@ -146,6 +146,8 @@ Tests apply migrations before discovering tables, keep the version table between
 
 ## Configuration
 
+See the [code walkthrough](../docs/CODE_WALKTHROUGH.md) for recent commits, request flow, and userver terminology.
+
 The development image uses Ubuntu 24.04 with build/test tools. The server listens on `0.0.0.0` inside the container; Compose publishes port 8080 only on the host's localhost. Host build output and local CMake presets are excluded from the image.
 
 | File | Purpose |
