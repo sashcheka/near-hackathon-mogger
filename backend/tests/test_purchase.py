@@ -9,7 +9,11 @@ REQUEST = {'prompt': 'Buy one pack of toilet paper',
 
 
 @pytest.fixture
-def ollama(mockserver):
+def ollama(mockserver, pgsql, seed_catalog):
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT id, name FROM products ORDER BY id')
+        catalog = [{'id': product_id, 'name': name}
+                   for product_id, name in cursor.fetchall()]
     state = {'content': '{"product_id":"toilet-paper","quantity":1}',
              'status': 200, 'delay': 0, 'done': True, 'calls': 0}
 
@@ -22,9 +26,7 @@ def ollama(mockserver):
         assert body['format']['additionalProperties'] is False
         data = json.loads(body['messages'][1]['content'])
         assert data['request'] == REQUEST['prompt']
-        assert {item['id'] for item in data['catalog']} == {
-            'toilet-paper', 'groceries', 'premium-paper',
-        }
+        assert data['catalog'] == catalog
         await asyncio.sleep(state['delay'])
         return mockserver.make_response(status=state['status'], json={
             'done': state['done'], 'message': {'content': state['content']},

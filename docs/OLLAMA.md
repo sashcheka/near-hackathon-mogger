@@ -54,15 +54,33 @@ The model receives product IDs and names. Its instructions prefer standard produ
 
 Errors: 400 `invalid_request`, 404 `no_matching_product` or `product_not_found` if a selected product was deleted, 409 `budget_exceeded`, 502 `invalid_model_response`, 503 `model_unavailable`, and 504 `model_timeout`. Model failure creates no order; there is no automatic fallback selection. Requests have a 60-second model timeout, one attempt, no redirects, a 2048-token context, and at most 128 generated tokens. Thinking and streaming are disabled.
 
-Integration tests use an HTTP mock server; they need neither Ollama nor downloaded weights. They cover saved orders, invalid selections, budget rejection, upstream errors, and timeouts. The backend has compiled and reached real Ollama. The updated selection instructions and test-suite execution still await verification.
+Integration tests use an HTTP mock server; they need neither Ollama nor downloaded weights. They cover saved orders, invalid selections, budget rejection, upstream errors, and timeouts. The original four real-model scenarios passed with `qwen3:1.7b`. The expanded catalog checks and updated test-suite execution await verification.
 
-To check actual model behavior, run in a second dev container terminal with the backend and Ollama running and the default demo catalog present:
+The seed now contains 18 products. Apply the added demo rows from a host terminal in the repository root; existing products and orders are preserved:
+
+```sh
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
+```
+
+No schema migration, C++ rebuild, or backend restart is needed. To check actual model behavior, run in a second dev container terminal with the backend and Ollama running:
 
 ```sh
 python3 /app/backend/scripts/check_model_selection.py
 ```
 
-This creates unpaid demo orders and checks generic, quantity-specific, explicit premium, and unavailable-product requests. It returns a nonzero exit status on failure. Unlike mocked HTTP tests, this checks the model's actual choices; passing these four examples does not establish general selection accuracy.
+The script checks 20 requests against the full catalog, verifies the necessary products are present, and reports expected and actual choices on failures. Successful requests create unpaid demo orders. It returns a nonzero exit status on failure. The model prompt is unchanged for these new cases.
+
+| Selection dimension | Examples |
+| --- | --- |
+| Milk and plant-based drinks | Whole cow milk, lactose-free cow milk, oat drink, almond drink |
+| Coffee preparation and caffeine | Whole beans, caffeinated ground, decaffeinated ground |
+| Tea | Green vs. black; two boxes |
+| Cleaning use | Washing dishes by hand vs. clothes in a machine |
+| Water | Sparkling vs. still; three bottles |
+| Bread | Whole wheat vs. gluten-free |
+| Unavailable items | Laptop and soy milk: return no match |
+
+The original paper scenarios remain as regressions. All prices and budgets are test NEAR values. Unlike mocked HTTP tests, these checks measure real model choices on a small fixed sample; they do not establish general accuracy.
 
 ## Stop
 

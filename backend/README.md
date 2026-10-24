@@ -43,7 +43,7 @@ docker compose run --rm --no-deps backend ctest --preset docker
 {"products":[{"id":"toilet-paper","name":"Toilet paper","price_yocto":"2000000000000000000000000"}]}
 ```
 
-The example shows one product; the seeded catalog has three. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. HTTP tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price.
+The example shows one product; the seeded catalog has 18 across paper, groceries, milk and plant-based drinks, coffee, tea, cleaning products, water, and bread. The handler queries PostgreSQL on each request; database failures produce an error response rather than an empty catalog. HTTP tests cover the seeded catalog, an empty table, and updated database values including a 39-digit price.
 
 ## Orders API
 
