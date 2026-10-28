@@ -43,6 +43,9 @@ async def test_model_creates_unpaid_order(service_client, pgsql, ollama):
     assert order['quantity'] == 1
     assert order['total_yocto'] == '2000000000000000000000000'
     assert order['status'] == 'pending_payment'
+    details = await service_client.get(f"/orders/{order['id']}")
+    assert details.status == 200
+    assert details.json()['payment']['receiver_id'] == 'merchant.testnet'
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute('SELECT id::text FROM orders')
         assert cursor.fetchall() == [(order['id'],)]

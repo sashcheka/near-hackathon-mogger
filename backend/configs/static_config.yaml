@@ -37,6 +37,15 @@ components_manager:
       method: POST
       task_processor: main-task-processor
 
+    handler-order-details:
+      path: /orders/{order_id}
+      method: GET
+      task_processor: main-task-processor
+
+    merchant-settings:
+      account-id#env: MERCHANT_ACCOUNT_ID
+      account-id#fallback: ''
+
     handler-purchase:
       path: /purchase-requests
       method: POST

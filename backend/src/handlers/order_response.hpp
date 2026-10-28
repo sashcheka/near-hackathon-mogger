@@ -19,15 +19,18 @@ inline std::string JsonResponse(
   return userver::formats::json::ToString(value);
 }
 
+inline userver::formats::json::Value OrderJson(const Order& order) {
+  return userver::formats::json::MakeObject(
+      "id", order.id, "product_id", order.product_id, "quantity",
+      order.quantity, "unit_price_yocto", order.unit_price_yocto, "total_yocto",
+      order.total_yocto, "budget_yocto", order.budget_yocto, "status",
+      order.status);
+}
+
 inline std::string CreatedOrderResponse(
     const userver::server::http::HttpRequest& request, const Order& order) {
-  return JsonResponse(
-      request, userver::server::http::HttpStatus::kCreated,
-      userver::formats::json::MakeObject(
-          "id", order.id, "product_id", order.product_id, "quantity",
-          order.quantity, "unit_price_yocto", order.unit_price_yocto,
-          "total_yocto", order.total_yocto, "budget_yocto", order.budget_yocto,
-          "status", "pending_payment"));
+  return JsonResponse(request, userver::server::http::HttpStatus::kCreated,
+                      OrderJson(order));
 }
 
 inline std::string OrderErrorResponse(
@@ -41,6 +44,9 @@ inline std::string OrderErrorResponse(
   } else if (code == OrderErrorCode::kBudgetExceeded) {
     status = Status::kConflict;
     message = "budget_exceeded";
+  } else if (code == OrderErrorCode::kOrderNotFound) {
+    status = Status::kNotFound;
+    message = "order_not_found";
   }
   return JsonResponse(request, status,
                       userver::formats::json::MakeObject("error", message));

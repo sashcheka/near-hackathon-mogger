@@ -82,6 +82,9 @@ async def test_large_amounts_do_not_overflow(service_client, pgsql):
     )
     assert response.status == 201
     assert response.json()['total_yocto'] == price
+    details = await service_client.get(f"/orders/{response.json()['id']}")
+    assert details.status == 200
+    assert details.json()['payment']['amount_yocto'] == price
     response = await service_client.post(
         '/orders', json={**REQUEST, 'quantity': 1000, 'budget_yocto': price},
     )

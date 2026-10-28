@@ -9,8 +9,11 @@
 namespace community_treasury {
 
 PurchaseService::PurchaseService(
-    userver::storages::postgres::ClusterPtr cluster, const OllamaClient& model)
-    : cluster_(std::move(cluster)), model_(model), orders_(cluster_) {}
+    userver::storages::postgres::ClusterPtr cluster, const OllamaClient& model,
+    std::string receiver_id)
+    : cluster_(std::move(cluster)),
+      model_(model),
+      orders_(cluster_, std::move(receiver_id)) {}
 
 Order PurchaseService::Create(const std::string& prompt,
                               const std::string& budget) const {

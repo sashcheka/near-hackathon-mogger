@@ -8,7 +8,7 @@ namespace community_treasury {
 class PurchaseService {
  public:
   PurchaseService(userver::storages::postgres::ClusterPtr cluster,
-                  const OllamaClient& model);
+                  const OllamaClient& model, std::string receiver_id);
   Order Create(const std::string& prompt, const std::string& budget) const;
 
  private:

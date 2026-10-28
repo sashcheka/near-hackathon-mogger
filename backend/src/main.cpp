@@ -1,6 +1,5 @@
 #include <string>
 #include <string_view>
-
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -12,6 +11,8 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include "components/merchant_settings.hpp"
+#include "handlers/order_details_handler.hpp"
 #include "handlers/orders_handler.hpp"
 #include "handlers/products_handler.hpp"
 #include "handlers/purchase_handler.hpp"
@@ -37,15 +38,17 @@ class HealthHandler final : public userver::server::handlers::HttpHandlerBase {
 }  // namespace community_treasury
 
 int main(int argc, char* argv[]) {
-  const auto components = userver::components::MinimalServerComponentList()
-                              .Append<community_treasury::HealthHandler>()
-                              .Append<community_treasury::ProductsHandler>()
-                              .Append<community_treasury::OrdersHandler>()
-                              .Append<community_treasury::PurchaseHandler>()
-                              .AppendComponentList(
-                                  userver::clients::http::ComponentList())
-                              .Append<userver::clients::dns::Component>()
-                              .Append<userver::components::TestsuiteSupport>()
-                              .Append<userver::components::Postgres>("postgres-db");
+  const auto components =
+      userver::components::MinimalServerComponentList()
+          .Append<community_treasury::HealthHandler>()
+          .Append<community_treasury::ProductsHandler>()
+          .Append<community_treasury::OrdersHandler>()
+          .Append<community_treasury::OrderDetailsHandler>()
+          .Append<community_treasury::MerchantSettings>()
+          .Append<community_treasury::PurchaseHandler>()
+          .AppendComponentList(userver::clients::http::ComponentList())
+          .Append<userver::clients::dns::Component>()
+          .Append<userver::components::TestsuiteSupport>()
+          .Append<userver::components::Postgres>("postgres-db");
   return userver::utils::DaemonMain(argc, argv, components);
 }

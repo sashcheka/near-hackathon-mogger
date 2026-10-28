@@ -5,6 +5,7 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include "../components/merchant_settings.hpp"
 #include "order_response.hpp"
 
 namespace community_treasury {
@@ -22,7 +23,7 @@ PurchaseHandler::PurchaseHandler(
       service_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
               .GetCluster(),
-          model_) {}
+          model_, context.FindComponent<MerchantSettings>().AccountId()) {}
 
 std::string PurchaseHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,

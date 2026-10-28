@@ -1,6 +1,6 @@
 # Backend
 
-C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` reports HTTP liveness, `GET /products` reads the catalog, and `POST /orders` validates and stores unpaid orders. Schema migrations are in `db/migrations/`; optional demo data is in `db/seed.sql`.
+C++20 service using userver v3.2 with a PostgreSQL connection pool. `GET /health` reports HTTP liveness, `GET /products` reads the catalog, `POST /orders` validates and stores unpaid orders, and `GET /orders/{id}` retrieves their saved payment details. Schema migrations are in `db/migrations/`; optional demo data is in `db/seed.sql`.
 
 ## Run
 
@@ -66,6 +66,36 @@ curl -i http://localhost:8080/orders \
 ```
 
 Code flow: `handlers/orders_handler` parses HTTP/JSON, `services/orders_service` validates and controls the transaction, `repositories/orders_repository` executes parameterized SQL, and `domain/order.hpp` defines shared types. Integration tests cover persisted snapshots, rejected requests, and large exact amounts. Direct order creation is verified; test execution has not been confirmed.
+
+## Order payment details
+
+`GET /orders/{id}` returns HTTP 200 with the saved order fields and `payment`:
+
+```json
+{"network_id":"testnet","receiver_id":"your-merchant.testnet","asset":"NEAR","amount_yocto":"4000000000000000000000000"}
+```
+
+This object is the value of `payment`; the amount always comes from the saved order total. Catalog price changes and URL parameters cannot override the saved payment details. Invalid UUIDs return HTTP 400 `invalid_request`; missing orders return HTTP 404 `order_not_found`.
+
+Apply the new migration from the host repository root:
+
+```sh
+docker compose run --rm migrate
+```
+
+Set `MERCHANT_ACCOUNT_ID` to your merchant's Testnet account when launching the backend. Both `/orders` and `/purchase-requests` save this recipient and the fixed `testnet` network when creating an order. The account format is validated at startup against the [NEAR account naming rules](https://github.com/near/nearcore/blob/master/docs/DataStructures/Account.md); account existence is not checked in this step.
+
+```sh
+cd /app/backend
+MERCHANT_ACCOUNT_ID=your-merchant.testnet \
+OLLAMA_MODEL=qwen3:4b \
+OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
+  ./build/community_treasury_backend --config configs/static_config.yaml
+```
+
+Changing the configured merchant affects only new orders. An empty setting keeps purchase creation available with `payment: null` on retrieval. Existing orders retain their totals and have no recipient after migration; they are not assigned a new recipient automatically. Create a new order after configuring the merchant to obtain payment details. The local demo retrieves orders by UUID without account authentication. This endpoint does not transfer or verify funds.
+
+HTTP tests cover price and recipient snapshots, ignored payment overrides, both creation paths, legacy orders, exact large amounts, malformed/missing UUIDs, and migration preservation. Build and test execution for this change are pending.
 
 ## AI purchase requests
 

@@ -1,6 +1,7 @@
 #include "orders_service.hpp"
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/uuid/string_generator.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 #include <utility>
@@ -21,8 +22,9 @@ Amount ParseAmount(const std::string& value) {
 
 }  // namespace
 
-OrdersService::OrdersService(userver::storages::postgres::ClusterPtr cluster)
-    : cluster_(std::move(cluster)) {}
+OrdersService::OrdersService(userver::storages::postgres::ClusterPtr cluster,
+                             std::string receiver_id)
+    : cluster_(std::move(cluster)), receiver_id_(std::move(receiver_id)) {}
 
 Order OrdersService::Create(const CreateOrderRequest& request) const {
   if (request.product_id.empty() || request.product_id.size() > 128 ||
@@ -41,10 +43,22 @@ Order OrdersService::Create(const CreateOrderRequest& request) const {
   const Amount total = ParseAmount(*price) * request.quantity;
   if (total > budget) throw OrderError(OrderErrorCode::kBudgetExceeded);
 
-  auto order =
-      orders_repository::Insert(transaction, request, *price, total.str());
+  auto order = orders_repository::Insert(transaction, request, *price,
+                                         total.str(), receiver_id_);
   transaction.Commit();
   return order;
+}
+
+Order OrdersService::Get(const std::string& id) const {
+  if (id.size() != 36) throw OrderError(OrderErrorCode::kInvalidRequest);
+  try {
+    (void)boost::uuids::string_generator{}(id);
+  } catch (const std::runtime_error&) {
+    throw OrderError(OrderErrorCode::kInvalidRequest);
+  }
+  auto order = orders_repository::Find(cluster_, id);
+  if (!order) throw OrderError(OrderErrorCode::kOrderNotFound);
+  return *order;
 }
 
 }  // namespace community_treasury

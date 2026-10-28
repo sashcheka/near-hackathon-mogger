@@ -39,8 +39,8 @@ flowchart TD
 | React + TypeScript | [frontend/](frontend/) | Request input, purchase review, wallet confirmation, and result display |
 | Stage specification | [docs/STAGE_1.md](docs/STAGE_1.md) | Scope, acceptance criteria, and implementation sequence |
 
-The backend derives prices and recipients from its catalog, validates spending limits independently of the model, and holds no wallet keys. Payment success requires verification of the transaction outcome.
+The backend derives prices from its catalog and the merchant recipient from server configuration, validates spending limits independently of the model, and holds no wallet keys. Payment success requires verification of the transaction outcome.
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health`, `GET /products`, `POST /orders`, and `POST /purchase-requests`. Orders validate catalog prices and a per-request budget before saving an unpaid price snapshot. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) is implemented and awaits build and browser verification. See [backend setup](backend/README.md). Wallet payments are pending.
+The backend exposes `GET /health`, `GET /products`, `POST /orders`, `POST /purchase-requests`, and `GET /orders/{id}`. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval awaits build/test verification; see [backend setup](backend/README.md). The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) runs in the reported browser check. Wallet payments are pending.

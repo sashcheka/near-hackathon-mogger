@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -22,12 +23,16 @@ struct Order {
   std::string unit_price_yocto;
   std::string total_yocto;
   std::string budget_yocto;
+  std::string status = "pending_payment";
+  std::optional<std::string> receiver_id = std::nullopt;
+  std::string network_id = "testnet";
 };
 
 enum class OrderErrorCode {
   kInvalidRequest,
   kProductNotFound,
-  kBudgetExceeded
+  kBudgetExceeded,
+  kOrderNotFound
 };
 
 class OrderError final : public std::runtime_error {

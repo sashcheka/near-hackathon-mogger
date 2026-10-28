@@ -4,6 +4,7 @@
 #include <userver/formats/json.hpp>
 #include <userver/storages/postgres/component.hpp>
 
+#include "../components/merchant_settings.hpp"
 #include "order_response.hpp"
 
 namespace community_treasury {
@@ -30,7 +31,8 @@ OrdersHandler::OrdersHandler(
     : HttpHandlerBase(config, context),
       service_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
-              .GetCluster()) {}
+              .GetCluster(),
+          context.FindComponent<MerchantSettings>().AccountId()) {}
 
 std::string OrdersHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,

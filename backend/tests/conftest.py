@@ -14,6 +14,7 @@ def userver_config_http_client(userver_config_http_client, mockserver_info):
     def patch(config, config_vars):
         userver_config_http_client(config, config_vars)
         components = config['components_manager']['components']
+        components['merchant-settings']['account-id'] = 'merchant.testnet'
         components['handler-purchase']['ollama-url'] = mockserver_info.url('/api/chat')
         components['handler-purchase']['ollama-model'] = 'test-model'
         components['http-client-core']['testsuite-timeout'] = '500ms'
