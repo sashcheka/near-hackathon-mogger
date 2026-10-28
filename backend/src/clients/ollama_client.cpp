@@ -15,7 +15,14 @@ namespace {
 constexpr std::string_view kInstructions =
     "Select one catalog product and its quantity for the purchase request. "
     "Return JSON with product_id and quantity only. "
-    "Match the requested product name and attributes. For a generic request, "
+    "Select a product only if it satisfies ALL explicitly requested attributes, "
+    "including ingredient or source, dietary restrictions, preparation, and "
+    "negations. A matching category alone is insufficient. "
+    "Different plant sources and dairy are not interchangeable. "
+    "If no product satisfies every requested attribute, return "
+    "product_id=null and quantity=1. Do not choose the closest alternative, "
+    "even if it belongs to the same category. "
+    "Among matching products, for a generic request, "
     "prefer the plain standard product over premium, deluxe, or luxury variants. "
     "Choose an upgraded variant only when the user explicitly requests it. "
     "Preserve the requested quantity: one pack means quantity=1. "
@@ -61,7 +68,8 @@ ProductSelection OllamaClient::Select(
       "model", model_, "stream", false, "think", false, "keep_alive", "1m",
       "format", kSelectionSchema, "messages", messages.ExtractValue(),
       "options",
-      json::MakeObject("temperature", 0, "num_ctx", 2048, "num_predict", 128)));
+      json::MakeObject("temperature", 0.7, "top_p", 0.8, "top_k", 20,
+                       "min_p", 0.0, "num_ctx", 2048, "num_predict", 128)));
 
   try {
     const auto response = http_.CreateRequest()

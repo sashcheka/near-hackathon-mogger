@@ -96,9 +96,17 @@ def check(base_url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend-url', default='http://localhost:8080')
+    parser.add_argument('--repeat', type=int, default=1,
+                        help='Number of full runs to check selection stability')
     args = parser.parse_args()
+    if args.repeat < 1:
+        parser.error('--repeat must be at least 1')
     try:
-        sys.exit(check(args.backend_url))
+        failures = 0
+        for run in range(1, args.repeat + 1):
+            print(f'Run {run}/{args.repeat}', flush=True)
+            failures += check(args.backend_url)
+        sys.exit(int(failures != 0))
     except (urllib.error.URLError, TimeoutError, ValueError) as error:
         print(f'Check failed: {error}', file=sys.stderr)
         sys.exit(1)
