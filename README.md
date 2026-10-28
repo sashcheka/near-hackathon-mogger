@@ -43,4 +43,4 @@ The backend derives prices and recipients from its catalog, validates spending l
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health`, `GET /products`, `POST /orders`, and `POST /purchase-requests`. Orders validate catalog prices and a per-request budget before saving an unpaid price snapshot. Direct order creation is verified; the new [local Ollama integration](docs/OLLAMA.md) awaits runtime validation. See [backend setup](backend/README.md). Payments and frontend implementation are pending.
+The backend exposes `GET /health`, `GET /products`, `POST /orders`, and `POST /purchase-requests`. Orders validate catalog prices and a per-request budget before saving an unpaid price snapshot. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) is implemented and awaits build and browser verification. See [backend setup](backend/README.md). Wallet payments are pending.

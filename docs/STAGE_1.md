@@ -22,6 +22,6 @@ The store is a demo implementation. Product delivery is simulated. Autonomous sp
 1. Build the C++ service and implement `GET /health`. **Complete:** build, HTTP integration test, and standalone endpoint verification pass.
 2. Add PostgreSQL, the demo catalog, and order storage. PostgreSQL, `GET /products`, dbmate setup, and `POST /orders` are verified.
 3. Implement deterministic purchase validation and focused tests. Implemented for product, quantity, and per-order budget, with exact arithmetic and transactional price snapshots; test execution is pending.
-4. Connect the model to product selection. Local Ollama integration and `POST /purchase-requests` are implemented; compilation, HTTP tests, and real model validation are pending. See [setup](OLLAMA.md).
-5. Add the React purchase screen.
+4. Connect the model to product selection. Local Ollama integration and `POST /purchase-requests` are implemented; `qwen3:4b` passed 19/20 catalog checks in three reported runs. The remaining mismatch is accepted for the PoC with user review; HTTP test-suite execution remains unconfirmed. See [setup](OLLAMA.md).
+5. Add the React purchase screen. Implemented: request and budget input, order review, and error display. Build, amount tests, and browser verification are pending; see [frontend setup](../frontend/README.md).
 6. Connect the wallet and verify Testnet payments end to end.
