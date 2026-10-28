@@ -17,7 +17,7 @@
     "source=${localWorkspaceFolderBasename}-codex-data,target=/home/app/.codex,type=volume",
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/app/.vscode-server/extensions,type=volume"
   ],
-  "forwardPorts": [8080],
+  "forwardPorts": [8080, 5173],
   "customizations": {
     "vscode": {
       "extensions": [
