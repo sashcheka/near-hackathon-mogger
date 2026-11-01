@@ -14,9 +14,17 @@ def userver_config_http_client(userver_config_http_client, mockserver_info):
     def patch(config, config_vars):
         userver_config_http_client(config, config_vars)
         components = config['components_manager']['components']
-        components['merchant-settings']['account-id'] = 'merchant.testnet'
-        components['handler-purchase']['ollama-url'] = mockserver_info.url('/api/chat')
-        components['handler-purchase']['ollama-model'] = 'test-model'
+        overrides = {
+            'merchant-settings': {'account-id': 'merchant.testnet'},
+            'handler-verify-payment': {'rpc-url': mockserver_info.url('/near-rpc')},
+            'handler-purchase': {'ollama-url': mockserver_info.url('/api/chat'),
+                                 'ollama-model': 'test-model'},
+        }
+        for name, values in overrides.items():
+            for key, value in values.items():
+                components[name].pop(key + '#env', None)
+                components[name].pop(key + '#fallback', None)
+                components[name][key] = value
         components['http-client-core']['testsuite-timeout'] = '500ms'
 
     return patch

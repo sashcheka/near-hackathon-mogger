@@ -14,6 +14,7 @@
 #include "components/merchant_settings.hpp"
 #include "handlers/order_details_handler.hpp"
 #include "handlers/orders_handler.hpp"
+#include "handlers/payment_verification_handler.hpp"
 #include "handlers/products_handler.hpp"
 #include "handlers/purchase_handler.hpp"
 
@@ -44,6 +45,7 @@ int main(int argc, char* argv[]) {
           .Append<community_treasury::ProductsHandler>()
           .Append<community_treasury::OrdersHandler>()
           .Append<community_treasury::OrderDetailsHandler>()
+          .Append<community_treasury::PaymentVerificationHandler>()
           .Append<community_treasury::MerchantSettings>()
           .Append<community_treasury::PurchaseHandler>()
           .AppendComponentList(userver::clients::http::ComponentList())

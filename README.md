@@ -66,7 +66,23 @@ Click **Connect wallet**, choose a Testnet-compatible wallet, and approve the co
 
 If you do not have a Testnet account yet, create one in the selected wallet first. This does not configure the merchant recipient; that separate account will be set up before payments.
 
-This step connects the account in the UI. Backend ownership verification, merchant account setup, transfers, and payment verification remain pending. Wallet connection does not mark orders paid. Connection, cancellation, reload, and disconnect await browser verification.
+Wallet connection, reload restoration, and disconnect passed browser checks. Backend ownership verification and wallet transfers remain pending. Wallet connection does not mark orders paid.
+
+## Merchant and transfer verification
+
+Create a separate Testnet merchant account in your wallet. Stop the backend and relaunch it from the dev container; replace `your-merchant.testnet` with that account ID:
+
+```sh
+cd /app/backend
+MERCHANT_ACCOUNT_ID=your-merchant.testnet \
+OLLAMA_MODEL=qwen3:4b \
+OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
+  ./build/community_treasury_backend --config configs/static_config.yaml
+```
+
+Create a new order afterward. `GET /orders/{id}` must show the merchant in `payment.receiver_id`, network `testnet`, and the saved total in `payment.amount_yocto`. Older orders keep their original recipient, including `null`.
+
+The new `POST /orders/{id}/verify-payment` checks an existing native transfer through Testnet RPC; see [request and error details](docs/PAYMENTS.md). This is a read-only check: it leaves the order unpaid and does not authenticate the sender or reserve a transaction for an order. Durable payment recording, replay protection, and order/buyer binding are the next step. Build and HTTP test execution for verification are pending.
 
 ## Stage 1
 
@@ -94,4 +110,4 @@ The backend derives prices from its catalog and the merchant recipient from serv
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health`, `GET /products`, `POST /orders`, `POST /purchase-requests`, and `GET /orders/{id}`. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval passed a reported standalone check. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) runs in the reported browser check. Wallet connection is implemented and awaits build/browser verification; payments remain pending.
+The backend exposes catalog, order creation/retrieval, AI selection, and read-only transfer verification. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval passed a reported standalone check. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) and Testnet wallet connection passed reported browser checks. Durable payments remain pending.

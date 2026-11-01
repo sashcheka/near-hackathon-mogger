@@ -46,6 +46,13 @@ components_manager:
       account-id#env: MERCHANT_ACCOUNT_ID
       account-id#fallback: ''
 
+    handler-verify-payment:
+      path: /orders/{order_id}/verify-payment
+      method: POST
+      task_processor: main-task-processor
+      rpc-url#env: NEAR_TESTNET_RPC_URL
+      rpc-url#fallback: https://rpc.testnet.near.org
+
     handler-purchase:
       path: /purchase-requests
       method: POST

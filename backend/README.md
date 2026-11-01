@@ -97,6 +97,10 @@ Changing the configured merchant affects only new orders. An empty setting keeps
 
 HTTP tests cover price and recipient snapshots, ignored payment overrides, both creation paths, legacy orders, exact large amounts, malformed/missing UUIDs, and migration preservation. Build and test execution for this change are pending.
 
+## Transfer verification
+
+`POST /orders/{id}/verify-payment` checks an existing native NEAR Testnet transfer against the saved order. Configure the merchant before creating a new order. This read-only endpoint leaves the order unpaid; buyer authentication, order binding, transaction uniqueness, and payment recording remain pending. See [API, RPC configuration, and errors](../docs/PAYMENTS.md).
+
 ## AI purchase requests
 
 `POST /purchase-requests` accepts `prompt` and `budget_yocto`, selects a product through local Ollama, and uses the existing order service to create an unpaid order. See [local model setup](../docs/OLLAMA.md) for installation, configuration, API errors, and verification commands. Runtime validation is pending.

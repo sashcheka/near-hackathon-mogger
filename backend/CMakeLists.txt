@@ -19,6 +19,7 @@ add_executable(community_treasury_backend
     src/handlers/products_handler.cpp
     src/handlers/orders_handler.cpp
     src/handlers/order_details_handler.cpp
+    src/handlers/payment_verification_handler.cpp
     src/components/merchant_settings.cpp
     src/services/orders_service.cpp
     src/repositories/orders_repository.cpp
