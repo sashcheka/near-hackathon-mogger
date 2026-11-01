@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { createPurchase, getProducts } from './api';
 import type { Order, Product } from './api';
 import { fromYocto, toYocto } from './amounts';
+import WalletPanel from './WalletPanel';
 
 export default function App() {
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
@@ -48,6 +49,8 @@ export default function App() {
         <h1>A purchase within your budget.</h1>
         <p>Describe what you need. Review the assistant’s selection before paying.</p>
       </header>
+
+      <WalletPanel />
 
       <form onSubmit={submit}>
         <fieldset disabled={busy || loading || products.length === 0}>

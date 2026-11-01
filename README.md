@@ -2,20 +2,71 @@
 
 A budget-controlled purchasing assistant. An AI model selects a product, the backend validates the purchase, and the user confirms payment through a NEAR wallet.
 
-## Quick start
+## Local development
 
-Install Docker with Compose and enable Linux containers. Then:
+macOS + Colima workflow. Prerequisites: Docker CLI with Compose, Colima, Ollama, and VS Code with Dev Containers. C++, Node.js, and npm run inside the dev container. Install Ollama once with `brew install ollama`. Clone this repository and open its root in VS Code.
+
+**1. Mac terminal, repository root — PostgreSQL.** Start Colima if stopped, then apply migrations and demo data:
 
 ```sh
-git clone https://github.com/sashcheka/near-hackathon-mogger.git
-cd near-hackathon-mogger
-docker compose up -d --wait postgres
-docker compose run --rm migrate
+colima start
+docker compose up -d --wait postgres &&
+docker compose run --rm migrate &&
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
-docker compose up --build -d --wait backend
 ```
 
-Check `http://localhost:8080/health` for `{"status":"ok"}`. Build/test details and current validation status: [backend setup](backend/README.md).
+**2. Another Mac terminal — Ollama.** Leave this server running:
+
+```sh
+ollama serve
+```
+
+Download the model once from another Mac terminal: `ollama pull qwen3:4b`. If Ollama is already serving, reuse that process.
+
+**3. VS Code — Dev Containers: Reopen in Container.** PostgreSQL must be running first to create the Docker network. Existing dev containers can be reopened; rebuild only after environment configuration changes.
+
+**4. Dev container terminal — backend.** The initial build is slow; later builds reuse the persistent build volume. Leave the server running:
+
+```sh
+cd /app/backend &&
+cmake --preset docker &&
+cmake --build --preset docker &&
+ctest --preset docker &&
+OLLAMA_MODEL=qwen3:4b \
+OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
+  ./build/community_treasury_backend --config configs/static_config.yaml
+```
+
+For an unchanged, already-built backend, run only the environment assignments and executable from `/app/backend`. `MERCHANT_ACCOUNT_ID` is optional for now: unset means retrieved orders have `payment: null`.
+
+**5. Another dev container terminal — frontend.** Leave Vite running:
+
+```sh
+cd /app/frontend &&
+npm ci &&
+npm test &&
+npm run build &&
+npm run dev
+```
+
+Open `http://localhost:5173` through VS Code's forwarded port. Backend health: `curl --fail http://localhost:8080/health`. Vite forwards `/api` to the backend inside the container. After frontend-only edits, Vite reloads automatically; rerun `npm ci` when dependencies change.
+
+**Stop:** press `Ctrl+C` in the backend, frontend, and Ollama terminals, then close the dev container window. From the Mac repository root:
+
+```sh
+docker compose stop
+colima stop
+```
+
+Database, build, extensions, and Codex volumes are retained. Other host setups and the standalone backend image: [backend setup](backend/README.md); model settings: [Ollama setup](docs/OLLAMA.md).
+
+## Wallet connection
+
+Click **Connect wallet**, choose a Testnet-compatible wallet, and approve the connection. The UI shows its account ID, restores the connection after a page reload, and offers **Disconnect**. Use the same browser and `localhost:5173` origin when checking restoration. Integration uses [NEAR Connect](https://docs.near.org/tools/near-connect); the browser needs internet access for the wallet manifest and provider.
+
+If you do not have a Testnet account yet, create one in the selected wallet first. This does not configure the merchant recipient; that separate account will be set up before payments.
+
+This step connects the account in the UI. Backend ownership verification, merchant account setup, transfers, and payment verification remain pending. Wallet connection does not mark orders paid. Connection, cancellation, reload, and disconnect await browser verification.
 
 ## Stage 1
 
@@ -43,4 +94,4 @@ The backend derives prices from its catalog and the merchant recipient from serv
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes `GET /health`, `GET /products`, `POST /orders`, `POST /purchase-requests`, and `GET /orders/{id}`. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval awaits build/test verification; see [backend setup](backend/README.md). The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) runs in the reported browser check. Wallet payments are pending.
+The backend exposes `GET /health`, `GET /products`, `POST /orders`, `POST /purchase-requests`, and `GET /orders/{id}`. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval passed a reported standalone check. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) runs in the reported browser check. Wallet connection is implemented and awaits build/browser verification; payments remain pending.

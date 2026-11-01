@@ -2,6 +2,8 @@
 
 React + TypeScript purchase screen, built with Vite. Enter a request and a budget in test NEAR, then review the selected product, quantity, price, and unpaid order. Model and budget errors appear in the form. Wallet payments are pending.
 
+Wallet connection uses `@hot-labs/near-connect`, fixed to Testnet and wallets supporting sign-in without adding a key. `WalletProvider` owns one connector and shared account state; `WalletPanel` displays Connect/Disconnect, account ID, progress, and errors. SDK events update the state, existing connections are restored on startup, and React listeners are removed on unmount. Backend authentication and transfers are not implemented.
+
 ## Development
 
 The dev image includes Node.js 24 and npm. After pulling the environment change, run **Dev Containers: Rebuild Container** once. Existing backend build, extensions, and Codex volumes are reused. Keep PostgreSQL running on the host and restart the backend inside the dev container with Ollama configured; see [model setup](../docs/OLLAMA.md).
@@ -29,4 +31,4 @@ Open `http://localhost:5173` using VS Code's forwarded port. Vite proxies `/api`
 
 Budget input and display use decimal strings without floating-point conversion. The backend remains authoritative for product prices and budget checks. Submitting creates an unpaid order; there are no automatic retries. The user must review model choices before payment.
 
-Check a normal request, an over-budget purchase, an unavailable product, and a stopped Ollama server. Currency conversion tests and a production build are provided; browser and live backend verification are pending.
+Check a normal request, an over-budget purchase, an unavailable product, and a stopped Ollama server. The purchase screen has passed a reported browser check. After `npm ci`, run the build and amount tests, then check wallet connection, cancellation, reload restoration, and disconnect in the browser; wallet verification is pending. Closing the wallet modal must leave purchase creation usable. Keep the same origin when checking restoration.
