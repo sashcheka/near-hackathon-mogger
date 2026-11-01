@@ -51,14 +51,21 @@ npm run dev
 
 Open `http://localhost:5173` through VS Code's forwarded port. Backend health: `curl --fail http://localhost:8080/health`. Vite forwards `/api` to the backend inside the container. After frontend-only edits, Vite reloads automatically; rerun `npm ci` when dependencies change.
 
-**Stop:** press `Ctrl+C` in the backend, frontend, and Ollama terminals, then close the dev container window. From the Mac repository root:
+Other host setups and the standalone backend image: [backend setup](backend/README.md); model settings: [Ollama setup](docs/OLLAMA.md).
+
+## Stop all services
+
+1. In the dev container, press `Ctrl+C` in the backend terminal and in the frontend/Vite terminal.
+2. On the Mac, press `Ctrl+C` in the terminal running `ollama serve` to stop the model server.
+3. Close the VS Code dev container window. Its `shutdownAction: stopContainer` stops the development container.
+4. From a Mac terminal in the repository root, stop the Compose services and the Colima VM:
 
 ```sh
 docker compose stop
 colima stop
 ```
 
-Database, build, extensions, and Codex volumes are retained. Other host setups and the standalone backend image: [backend setup](backend/README.md); model settings: [Ollama setup](docs/OLLAMA.md).
+`docker compose stop` stops PostgreSQL and any standalone Compose backend. `colima stop` shuts down the Linux VM. Neither command deletes containers, images, build cache, or volumes. Source files, database data, cached C++ build, VS Code extensions, and Codex sessions are retained. Resume with the startup steps above.
 
 ## Wallet connection
 
