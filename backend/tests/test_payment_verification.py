@@ -7,13 +7,15 @@ import pytest
 
 HASH = 'A' * 44
 RECEIPT_ID = '3' * 44
+BLOCK_HASH = '7' * 44
 AMOUNT = '2000000000000000000000000'
 REQUEST = {'transaction_hash': HASH}
 TRANSACTION = {
     'hash': HASH, 'signer_id': 'buyer.testnet', 'receiver_id': 'merchant.testnet',
     'actions': [{'Transfer': {'deposit': AMOUNT}}],
 }
-OUTCOME = {'id': HASH, 'outcome': {'status': {'SuccessReceiptId': RECEIPT_ID}}}
+OUTCOME = {'id': HASH, 'block_hash': BLOCK_HASH,
+           'outcome': {'status': {'SuccessReceiptId': RECEIPT_ID}}}
 RECEIPT = {'id': RECEIPT_ID, 'outcome': {
     'executor_id': 'merchant.testnet', 'status': {'SuccessValue': ''},
 }}
@@ -24,12 +26,17 @@ def near_rpc(mockserver, pgsql, seed_catalog, buyer_token):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute(
             'INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, '
-            "budget_yocto, receiver_id, buyer_id) VALUES (%s, 1, %s, %s, %s, %s, 'buyer.testnet') RETURNING id::text",
+            "budget_yocto, receiver_id, buyer_id, created_at) VALUES "
+            "(%s, 1, %s, %s, %s, %s, 'buyer.testnet', now() - interval '1 minute') RETURNING id::text",
             ('toilet-paper', AMOUNT, AMOUNT, AMOUNT, 'merchant.testnet'),
         )
         order_id = cursor.fetchone()[0]
+        cursor.execute('SELECT (EXTRACT(EPOCH FROM clock_timestamp()) * 1000000000)::bigint::text')
+        timestamp = cursor.fetchone()[0]
     state = {'order_id': order_id, 'token': buyer_token, 'calls': [], 'chain_id': 'testnet',
-             'http_status': 200, 'delay': 0, 'result': copy.deepcopy({
+             'http_status': 200, 'delay': 0,
+             'block': {'header': {'hash': BLOCK_HASH, 'timestamp_nanosec': timestamp}},
+             'result': copy.deepcopy({
                  'transaction': TRANSACTION, 'final_execution_status': 'FINAL',
                  'status': {'SuccessValue': ''}, 'transaction_outcome': OUTCOME,
                  'receipts_outcome': [RECEIPT],
@@ -43,12 +50,16 @@ def near_rpc(mockserver, pgsql, seed_catalog, buyer_token):
         if body['method'] == 'status':
             assert body['params'] == []
             result = {'chain_id': state['chain_id']}
-        else:
+        elif body['method'] == 'tx':
             assert body['method'] == 'tx'
             assert body['params'] == {'tx_hash': HASH, 'sender_account_id': 'buyer.testnet',
                                       'wait_until': 'FINAL'}
             await asyncio.sleep(state['delay'])
             result = state['result']
+        else:
+            assert body['method'] == 'block'
+            assert body['params'] == {'block_id': BLOCK_HASH}
+            result = state['block']
         reply = {'jsonrpc': '2.0', 'id': body['id'], 'result': result}
         if body['method'] == 'tx':
             reply = state.get('reply', reply)
@@ -68,6 +79,8 @@ def assert_unpaid(pgsql, state):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute('SELECT status FROM orders WHERE id = %s', (state['order_id'],))
         assert cursor.fetchone() == ('pending_payment',)
+        cursor.execute('SELECT count(*) FROM payments WHERE order_id = %s', (state['order_id'],))
+        assert cursor.fetchone() == (0,)
 
 
 async def test_verifies_saved_amount_without_recording_payment(service_client, pgsql, near_rpc):
@@ -79,7 +92,7 @@ async def test_verifies_saved_amount_without_recording_payment(service_client, p
         'verified': True, 'order_id': near_rpc['order_id'], 'transaction_hash': HASH,
         'sender_id': 'buyer.testnet', 'network_id': 'testnet', 'order_status': 'pending_payment',
     }
-    assert near_rpc['calls'] == ['status', 'tx']
+    assert near_rpc['calls'] == ['status', 'tx', 'block']
     assert_unpaid(pgsql, near_rpc)
 
 
@@ -204,4 +217,28 @@ async def test_large_amount_is_compared_exactly(service_client, pgsql, near_rpc)
     near_rpc['result']['transaction']['actions'][0]['Transfer']['deposit'] = amount
     response = await verify(service_client, near_rpc)
     assert response.status == 200
+    assert_unpaid(pgsql, near_rpc)
+
+
+@pytest.mark.parametrize('timestamp', [None, 123, '', '0', '-1', '+1', '01', '1e9',
+                                      '18446744073709551616', '1' * 21])
+async def test_invalid_block_time_is_rejected(service_client, pgsql, near_rpc, timestamp):
+    near_rpc['block']['header']['timestamp_nanosec'] = timestamp
+    response = await verify(service_client, near_rpc)
+    assert response.status == 502 and response.json() == {'error': 'invalid_rpc_response'}
+    assert_unpaid(pgsql, near_rpc)
+
+
+async def test_block_must_match_transaction_outcome(service_client, pgsql, near_rpc):
+    near_rpc['block']['header']['hash'] = '8' * 44
+    response = await verify(service_client, near_rpc)
+    assert response.status == 502 and response.json() == {'error': 'invalid_rpc_response'}
+    assert_unpaid(pgsql, near_rpc)
+
+
+async def test_missing_outcome_block_is_rejected(service_client, pgsql, near_rpc):
+    del near_rpc['result']['transaction_outcome']['block_hash']
+    response = await verify(service_client, near_rpc)
+    assert response.status == 502 and response.json() == {'error': 'invalid_rpc_response'}
+    assert near_rpc['calls'] == ['status', 'tx']
     assert_unpaid(pgsql, near_rpc)

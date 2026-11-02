@@ -1,5 +1,7 @@
 #include "near_rpc_client.hpp"
 
+#include <charconv>
+#include <cstdint>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <utility>
@@ -87,14 +89,11 @@ void NearRpcClient::VerifyAccountKey(const std::string &account,
   }
 }
 
-void NearRpcClient::VerifyTransfer(const std::string &hash,
+VerifiedTransfer NearRpcClient::VerifyTransfer(const std::string &hash,
                                    const std::string &sender,
                                    const std::string &receiver,
                                    const std::string &amount) const {
-  constexpr std::string_view alphabet =
-      "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-  Require(hash.size() >= 32 && hash.size() <= 44 &&
-              hash.find_first_not_of(alphabet) == std::string::npos &&
+  Require(IsValidNearHash(hash) &&
               IsValidNearAccountId(sender) && IsValidNearAccountId(receiver),
           Code::kInvalidRequest);
   try {
@@ -137,6 +136,16 @@ void NearRpcClient::VerifyTransfer(const std::string &hash,
       CheckSuccess(receipt["outcome"]["status"]);
     }
     Require(matches == 1);
+    const auto block_hash = result["transaction_outcome"]["block_hash"].As<std::string>();
+    Require(IsValidNearHash(block_hash));
+    const auto header = Call("block", json::MakeObject("block_id", block_hash))["header"];
+    Require(header["hash"].As<std::string>() == block_hash);
+    const auto timestamp = header["timestamp_nanosec"].As<std::string>();
+    Require(!timestamp.empty() && timestamp.size() <= 20 && timestamp.front() != '0');
+    std::uint64_t value = 0;
+    const auto [end, error] = std::from_chars(timestamp.data(), timestamp.data() + timestamp.size(), value);
+    Require(error == std::errc{} && end == timestamp.data() + timestamp.size() && value > 0);
+    return {block_hash, timestamp};
   } catch (const json::Exception &) {
     throw NearRpcError(Code::kInvalidResponse);
   }

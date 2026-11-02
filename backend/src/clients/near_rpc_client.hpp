@@ -6,6 +6,8 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/formats/json.hpp>
 
+#include "../domain/payment.hpp"
+
 namespace community_treasury {
 
 enum class NearRpcErrorCode {
@@ -30,7 +32,7 @@ class NearRpcError final : public std::runtime_error {
 class NearRpcClient {
  public:
   NearRpcClient(userver::clients::http::Client &http, std::string url);
-  void VerifyTransfer(const std::string &hash, const std::string &sender,
+  VerifiedTransfer VerifyTransfer(const std::string &hash, const std::string &sender,
                       const std::string &receiver,
                       const std::string &amount) const;
   void VerifyAccountKey(const std::string &account,
