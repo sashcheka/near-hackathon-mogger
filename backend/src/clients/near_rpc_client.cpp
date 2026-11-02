@@ -15,19 +15,19 @@ void Require(bool condition, Code code = Code::kInvalidResponse) {
   if (!condition) throw NearRpcError(code);
 }
 
-void CheckSuccess(const json::Value& status) {
+void CheckSuccess(const json::Value &status) {
   Require(status.IsObject());
   if (status.HasMember("Failure")) throw NearRpcError(Code::kFailed);
   Require(status.GetSize() == 1 && status["SuccessValue"].IsString());
 }
 }  // namespace
 
-NearRpcClient::NearRpcClient(userver::clients::http::Client& http,
+NearRpcClient::NearRpcClient(userver::clients::http::Client &http,
                              std::string url)
     : http_(http), url_(std::move(url)) {}
 
 json::Value NearRpcClient::Call(std::string_view method,
-                                const json::Value& params) const {
+                                const json::Value &params) const {
   try {
     const auto response =
         http_.CreateRequest()
@@ -54,23 +54,43 @@ json::Value NearRpcClient::Call(std::string_view method,
       if (name == "UNKNOWN_TRANSACTION") throw NearRpcError(Code::kNotFound);
       if (name == "TIMEOUT_ERROR") throw NearRpcError(Code::kPending);
       if (name == "INVALID_TRANSACTION") throw NearRpcError(Code::kFailed);
+      if (name == "UNKNOWN_ACCESS_KEY" || name == "UNKNOWN_ACCOUNT")
+        throw NearRpcError(Code::kMismatch);
       throw NearRpcError(Code::kUnavailable);
     }
     Require(body["result"].IsObject());
     return body["result"];
-  } catch (const userver::clients::http::TimeoutException&) {
+  } catch (const userver::clients::http::TimeoutException &) {
     throw NearRpcError(Code::kTimeout);
-  } catch (const userver::clients::http::BaseException&) {
+  } catch (const userver::clients::http::BaseException &) {
     throw NearRpcError(Code::kUnavailable);
-  } catch (const json::Exception&) {
+  } catch (const json::Exception &) {
     throw NearRpcError(Code::kInvalidResponse);
   }
 }
 
-void NearRpcClient::VerifyTransfer(const std::string& hash,
-                                   const std::string& sender,
-                                   const std::string& receiver,
-                                   const std::string& amount) const {
+void NearRpcClient::VerifyAccountKey(const std::string &account,
+                                     const std::string &public_key) const {
+  try {
+    Require(Call("status", json::MakeArray())["chain_id"].As<std::string>() ==
+                "testnet",
+            Code::kWrongNetwork);
+    const auto key =
+        Call("query", json::MakeObject("request_type", "view_access_key",
+                                       "finality", "final", "account_id",
+                                       account, "public_key", public_key));
+    Require(key["permission"].IsString() &&
+                key["permission"].As<std::string>() == "FullAccess",
+            Code::kMismatch);
+  } catch (const json::Exception &) {
+    throw NearRpcError(Code::kInvalidResponse);
+  }
+}
+
+void NearRpcClient::VerifyTransfer(const std::string &hash,
+                                   const std::string &sender,
+                                   const std::string &receiver,
+                                   const std::string &amount) const {
   constexpr std::string_view alphabet =
       "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   Require(hash.size() >= 32 && hash.size() <= 44 &&
@@ -110,14 +130,14 @@ void NearRpcClient::VerifyTransfer(const std::string& hash,
             .As<std::string>();
     Require(!receipt_id.empty() && result["receipts_outcome"].IsArray());
     std::size_t matches = 0;
-    for (const auto& receipt : result["receipts_outcome"]) {
+    for (const auto &receipt : result["receipts_outcome"]) {
       if (receipt["id"].As<std::string>() != receipt_id) continue;
       ++matches;
       Require(receipt["outcome"]["executor_id"].As<std::string>() == receiver);
       CheckSuccess(receipt["outcome"]["status"]);
     }
     Require(matches == 1);
-  } catch (const json::Exception&) {
+  } catch (const json::Exception &) {
     throw NearRpcError(Code::kInvalidResponse);
   }
 }

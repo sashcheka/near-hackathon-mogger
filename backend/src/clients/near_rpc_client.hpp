@@ -29,16 +29,18 @@ class NearRpcError final : public std::runtime_error {
 
 class NearRpcClient {
  public:
-  NearRpcClient(userver::clients::http::Client& http, std::string url);
-  void VerifyTransfer(const std::string& hash, const std::string& sender,
-                      const std::string& receiver,
-                      const std::string& amount) const;
+  NearRpcClient(userver::clients::http::Client &http, std::string url);
+  void VerifyTransfer(const std::string &hash, const std::string &sender,
+                      const std::string &receiver,
+                      const std::string &amount) const;
+  void VerifyAccountKey(const std::string &account,
+                        const std::string &public_key) const;
 
  private:
   userver::formats::json::Value Call(
       std::string_view method,
-      const userver::formats::json::Value& params) const;
-  userver::clients::http::Client& http_;
+      const userver::formats::json::Value &params) const;
+  userver::clients::http::Client &http_;
   const std::string url_;
 };
 
