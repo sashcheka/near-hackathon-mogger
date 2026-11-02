@@ -3,7 +3,8 @@ import type { Account, NearWalletBase } from '@hot-labs/near-connect';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getAuthChallenge, getAuthSession, revokeSession, verifyWallet } from './api';
-import type { AuthSession } from './api';
+import type { AuthSession, PaymentDetails } from './api';
+import { isTransactionHash, PaymentNotSent, transferRequest } from './paymentState';
 import { clearSession, restoreSession, saveSession } from './walletSession';
 import type { SavedSession } from './walletSession';
 
@@ -17,12 +18,14 @@ type WalletState = {
   authenticate: () => Promise<void>;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  sendTransfer: (payment: PaymentDetails) => Promise<string>;
 };
 const WalletContext = createContext<WalletState | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const connector = useRef<NearConnector | null>(null);
   const generation = useRef(0);
+  const sending = useRef(false);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -44,7 +47,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const client = connector.current ??= new NearConnector({
         network: 'testnet',
         autoConnect: false,
-        features: { testnet: true, signInWithoutAddKey: true, signMessage: true },
+        features: { testnet: true, signInWithoutAddKey: true, signMessage: true, signAndSendTransaction: true },
       });
       const signedIn = async (value: Connection) => {
         if (!active) return;
@@ -52,6 +55,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setSession(null);
         const supported = value.wallet.manifest.features.testnet &&
           value.wallet.manifest.features.signMessage &&
+          value.wallet.manifest.features.signAndSendTransaction &&
           value.accounts[0]?.accountId;
         setConnection(supported ? value : null);
         setBusy(true);
@@ -118,6 +122,36 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function sendTransfer(payment: PaymentDetails) {
+    if (sending.current || busy || !connection || !session)
+      throw new PaymentNotSent('Connect and verify your wallet before paying.');
+    const version = generation.current;
+    sending.current = true;
+    setBusy(true);
+    try {
+      let accounts: Account[];
+      try { accounts = await connection.wallet.getAccounts({ network: 'testnet' }); } catch {
+        throw new PaymentNotSent('Could not check the wallet account. Reconnect and try again.');
+      }
+      if (generation.current !== version || session.expires_at <= Date.now() ||
+        accounts[0]?.accountId !== session.account_id)
+        throw new PaymentNotSent('The wallet account or session changed. Verify ownership again.');
+      const result = await connection.wallet.signAndSendTransaction(
+        transferRequest(payment, session.account_id));
+      const hash: unknown = result?.transaction?.hash;
+      if (!isTransactionHash(hash))
+        throw new Error('The wallet did not return a transaction hash. Check its history.');
+      return hash;
+    } catch (error) {
+      if (error instanceof Error && ['User cancelled the action', 'User rejected'].includes(error.message))
+        throw new PaymentNotSent('Payment canceled in the wallet.');
+      throw error;
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  }
+
   async function connect() {
     if (busy || !connector.current) return;
     setBusy(true);
@@ -157,7 +191,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   return <WalletContext.Provider value={{
     accountId: connection?.accounts[0]?.accountId ?? '',
-    ready, busy, error, session, authenticate, connect, disconnect,
+    ready, busy, error, session, authenticate, connect, disconnect, sendTransfer,
   }}>{children}</WalletContext.Provider>;
 }
 

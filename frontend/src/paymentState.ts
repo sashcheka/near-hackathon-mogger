@@ -1,8 +1,14 @@
 import type { OrderDetails, PaymentDetails } from './api';
+import type { SignAndSendTransactionParams } from '@hot-labs/near-connect';
 
 export type Attempt = { hash: string | null };
 export type PaymentStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export class PaymentNotSent extends Error {}
+
+export function transferRequest(payment: PaymentDetails, signerId: string): SignAndSendTransactionParams {
+  return { network: 'testnet', signerId, receiverId: payment.receiver_id,
+    actions: [{ type: 'Transfer', params: { deposit: payment.amount_yocto } }] };
+}
 
 export function isTransactionHash(value: unknown): value is string {
   return typeof value === 'string' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);

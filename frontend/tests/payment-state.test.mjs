@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { clearAttempt, payableDetails, paymentKey, readAttempt, saveAttempt,
-  withPaymentLock } from '../src/paymentState.ts';
+  transferRequest, withPaymentLock } from '../src/paymentState.ts';
 
 function storage() {
   const values = new Map();
@@ -14,6 +14,13 @@ const payment = { network_id: 'testnet', receiver_id: 'merchant.testnet',
 const order = { status: 'pending_payment', payment, quantity: 1,
   unit_price_yocto: payment.amount_yocto, total_yocto: payment.amount_yocto,
   budget_yocto: '3000000000000000000000000' };
+
+test('wallet request contains one exact native transfer on Testnet', () => {
+  assert.deepEqual(transferRequest(payment, 'buyer.testnet'), {
+    network: 'testnet', signerId: 'buyer.testnet', receiverId: 'merchant.testnet',
+    actions: [{ type: 'Transfer', params: { deposit: '2000000000000000000000001' } }],
+  });
+});
 
 test('recovers an unresolved wallet request and then its hash across component reloads', () => {
   const saved = storage();
