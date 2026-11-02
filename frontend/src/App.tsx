@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPurchase, getProducts } from './api';
 import type { Order, Product } from './api';
 import { fromYocto, toYocto } from './amounts';
 import WalletPanel from './WalletPanel';
+import { useWallet } from './WalletProvider';
 
 export default function App() {
+  const { session, busy: walletBusy } = useWallet();
+  const requestVersion = useRef(0);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('3');
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +16,13 @@ export default function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setOrder(null);
+    setError('');
+    setBusy(false);
+    return () => { ++requestVersion.current; };
+  }, [session?.token]);
 
   useEffect(() => {
     let active = true;
@@ -28,17 +38,20 @@ export default function App() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || walletBusy || !session) return;
+    const version = ++requestVersion.current;
     setError('');
     setOrder(null);
     try {
       const amount = toYocto(budget.trim());
       setBusy(true);
-      setOrder(await createPurchase(prompt.trim(), amount));
+      const created = await createPurchase(prompt.trim(), amount, session.token);
+      if (requestVersion.current === version) setOrder(created);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'The request could not be completed.');
+      if (requestVersion.current === version)
+        setError(error instanceof Error ? error.message : 'The request could not be completed.');
     } finally {
-      setBusy(false);
+      if (requestVersion.current === version) setBusy(false);
     }
   }
 
@@ -51,9 +64,10 @@ export default function App() {
       </header>
 
       <WalletPanel />
+      {!session && <p>Connect your wallet and verify ownership to create an order.</p>}
 
       <form onSubmit={submit}>
-        <fieldset disabled={busy || loading || products.length === 0}>
+        <fieldset disabled={busy || loading || walletBusy || !session || products.length === 0}>
           <label htmlFor="prompt">What do you need?</label>
           <textarea id="prompt" required maxLength={2000} rows={3}
             value={prompt} onChange={(event) => {

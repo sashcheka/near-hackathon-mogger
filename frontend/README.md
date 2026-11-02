@@ -29,6 +29,6 @@ npm run dev
 
 Open `http://localhost:5173` using VS Code's forwarded port. Vite proxies `/api` to `http://127.0.0.1:8080` inside the same container. The production bundle needs a reverse proxy with the same `/api` mapping; Vite's proxy is development-only.
 
-Budget input and display use decimal strings without floating-point conversion. The backend remains authoritative for product prices and budget checks. Submitting creates an unpaid order; there are no automatic retries. The user must review model choices before payment.
+Budget input and display use decimal strings without floating-point conversion. Creating an order requires wallet ownership verification; the frontend sends its Bearer token and clears displayed orders when the session changes. In-flight responses from a previous session are discarded. The backend remains authoritative for buyer identity, prices and budget checks. Submitting creates an unpaid order; there are no automatic retries. The user must review model choices before payment.
 
 Check a normal request, an over-budget purchase, an unavailable product, and a stopped Ollama server. The purchase screen and wallet connection/reload restoration/disconnect passed reported browser checks. Closing the wallet modal must leave purchase creation usable; cancellation and provider-failure checks remain in the manual checklist. Keep the same origin when checking restoration. Payments are pending.

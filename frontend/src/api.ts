@@ -69,9 +69,9 @@ export const getAuthSession = (token: string) => request<{ account_id: string }>
   headers: { Authorization: `Bearer ${token}` },
 });
 
-export const createPurchase = (prompt: string, budget: string) =>
+export const createPurchase = (prompt: string, budget: string, token: string) =>
   request<Order>('/purchase-requests', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ prompt, budget_yocto: budget }),
   });

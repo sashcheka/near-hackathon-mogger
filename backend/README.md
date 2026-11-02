@@ -47,7 +47,8 @@ The example shows one product; the seeded catalog has 18 across paper, groceries
 
 ## Orders API
 
-`POST /orders` accepts exactly these fields:
+`POST /orders` requires a verified session's `Authorization: Bearer <token>` and
+accepts exactly these fields. The buyer is taken from the session, never the body:
 
 ```json
 {"product_id":"toilet-paper","quantity":1,"budget_yocto":"3000000000000000000000000"}
@@ -57,10 +58,11 @@ Quantity must be an integer from 1 to 1000. Budget must be a positive decimal in
 
 HTTP 201 returns `id` (UUID), `product_id`, `quantity`, `unit_price_yocto`, `total_yocto`, `budget_yocto`, and `status: pending_payment`. Prices come from the database; monetary fields are strings. A shared row lock keeps the catalog price stable until the order snapshot is committed. Amount calculations use exact 256-bit integers; database constraints also enforce the total and budget.
 
-Errors use `{"error":"code"}`: HTTP 400 `invalid_request`, 404 `product_not_found`, or 409 `budget_exceeded`. Rejected requests create no order. Database failures remain server errors. Each successful POST creates a new unpaid order; this endpoint does not call AI or transfer funds.
+Errors use `{"error":"code"}`: HTTP 400 `invalid_request`, 401 `unauthorized`, 404 `product_not_found`, or 409 `budget_exceeded`. Rejected requests create no order. Database failures remain server errors. Each successful POST creates a new unpaid order; this endpoint does not call AI or transfer funds.
 
 ```sh
 curl -i http://localhost:8080/orders \
+  -H "Authorization: Bearer $TREASURY_SESSION_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"product_id":"toilet-paper","quantity":1,"budget_yocto":"3000000000000000000000000"}'
 ```
@@ -69,7 +71,9 @@ Code flow: `handlers/orders_handler` parses HTTP/JSON, `services/orders_service`
 
 ## Order payment details
 
-`GET /orders/{id}` returns HTTP 200 with the saved order fields and `payment`:
+`GET /orders/{id}` requires the same Bearer header and returns only the session
+account's orders. Foreign and unowned orders return 404 `order_not_found`.
+HTTP 200 returns the saved order fields and `payment`:
 
 ```json
 {"network_id":"testnet","receiver_id":"your-merchant.testnet","asset":"NEAR","amount_yocto":"4000000000000000000000000"}
@@ -93,13 +97,13 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
   ./build/community_treasury_backend --config configs/static_config.yaml
 ```
 
-Changing the configured merchant affects only new orders. An empty setting keeps purchase creation available with `payment: null` on retrieval. Existing orders retain their totals and have no recipient after migration; they are not assigned a new recipient automatically. Create a new order after configuring the merchant to obtain payment details. The local demo retrieves orders by UUID without account authentication. This endpoint does not transfer or verify funds.
+Changing the configured merchant affects only new orders. An empty setting keeps purchase creation available with `payment: null` on retrieval. Existing orders retain their saved recipient, including a missing one. Old unowned orders are preserved but remain inaccessible through the API. Create a new order after configuring the merchant and verifying your wallet. This endpoint does not transfer or verify funds. See [authentication and local API tokens](../docs/AUTH.md).
 
 HTTP tests cover price and recipient snapshots, ignored payment overrides, both creation paths, legacy orders, exact large amounts, malformed/missing UUIDs, and migration preservation. Build and test execution for this change are pending.
 
 ## Transfer verification
 
-`POST /orders/{id}/verify-payment` checks an existing native NEAR Testnet transfer against the saved order. Configure the merchant before creating a new order. This read-only endpoint leaves the order unpaid; buyer authentication, order binding, transaction uniqueness, and payment recording remain pending. See [API, RPC configuration, and errors](../docs/PAYMENTS.md).
+`POST /orders/{id}/verify-payment` checks an existing native NEAR Testnet transfer against the authenticated buyer's saved order. The sender comes from the session; the body contains only `transaction_hash`. This read-only endpoint leaves the order unpaid; transaction uniqueness and payment recording remain pending. See [API, RPC configuration, and errors](../docs/PAYMENTS.md).
 
 ## AI purchase requests
 

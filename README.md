@@ -75,7 +75,7 @@ If you do not have a Testnet account yet, create one in the selected wallet firs
 
 Click **Verify ownership** and approve the sign-in message to authenticate the connected account. The backend checks the NEP-413 signature and the account's FullAccess key through Testnet RPC. This does not transfer funds. Authentication requires the latest database migration; see [API and checks](docs/AUTH.md). The tab keeps its token in `sessionStorage`; reload restores verification only after the backend validates the session for the connected account. Reload does not extend the one-hour expiry. Disconnect revokes the session and clears the saved token.
 
-Wallet connection, reload restoration, and disconnect passed earlier browser checks. Authentication is implemented; its full build, tests and real-wallet check remain pending. Wallet transfers and order ownership restrictions are the next step. Wallet connection does not mark orders paid.
+Order creation, retrieval and transfer verification now require a verified session. The backend saves the session account as the buyer and restricts access to its orders; old unowned orders remain stored but cannot be claimed. The frontend sends the token and clears its displayed order when the session changes. Apply migrations before rebuilding the backend. Full build/tests and the updated browser flow still need to be checked. Wallet connection does not mark orders paid.
 
 ## Merchant and transfer verification
 
@@ -91,7 +91,7 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
 
 Create a new order afterward. `GET /orders/{id}` must show the merchant in `payment.receiver_id`, network `testnet`, and the saved total in `payment.amount_yocto`. Older orders keep their original recipient, including `null`.
 
-The new `POST /orders/{id}/verify-payment` checks an existing native transfer through Testnet RPC; see [request and error details](docs/PAYMENTS.md). This is a read-only check: it leaves the order unpaid and does not authenticate the sender or reserve a transaction for an order. Durable payment recording, replay protection, and order/buyer binding are the next step. Build and HTTP test execution for verification are pending.
+`POST /orders/{id}/verify-payment` checks an existing native transfer through Testnet RPC for the authenticated order owner; see [request and error details](docs/PAYMENTS.md). This is a read-only check and leaves the order unpaid. Durable payment recording and payment replay protection are the next step. Build and HTTP test execution for the updated flow are pending.
 
 ## Stage 1
 

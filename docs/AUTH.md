@@ -28,7 +28,20 @@ records are removed when issuing new challenges. Auth responses use `no-store`.
 when deploying elsewhere. `NEAR_TESTNET_RPC_URL` configures the RPC endpoint.
 Apply migrations before starting the updated backend. A backend restart does not
 invalidate unexpired sessions. Connecting a wallet alone does not authenticate a
-user. Order access restrictions and payment recording are separate steps.
+user. Payment recording remains a separate step.
+
+## Order ownership
+
+`POST /orders`, `POST /purchase-requests`, `GET /orders/{id}` and
+`POST /orders/{id}/verify-payment` require the session's Bearer token. The backend
+saves the session account as `buyer_id`; request fields cannot override it. Order
+lookup is filtered by account in SQL. Foreign and legacy unowned orders return
+404. Signing in again with the same account keeps access to its orders. The
+catalog and health endpoints remain public. Apply the buyer migration first.
+
+For local API checks, the verified browser tab stores its token under
+`community-treasury:testnet:session` in Developer Tools → Application → Session
+Storage. Use that token as `TREASURY_SESSION_TOKEN` for the documented curl checks.
 
 Invalid input returns 400; invalid/expired/reused challenges and invalid signatures
 or account keys return 401. RPC failures return 502/503/504 and never create a

@@ -1,7 +1,9 @@
 """Check real model selection through the running backend using unpaid orders."""
 
 import argparse
+import getpass
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
@@ -51,7 +53,11 @@ CASES = [
 ]
 
 
-def check(base_url):
+def check(base_url, token):
+    auth = {'Authorization': 'Bearer ' + token}
+    session = urllib.request.Request(base_url.rstrip('/') + '/auth/session', headers=auth)
+    with urllib.request.urlopen(session, timeout=10):
+        pass
     required_ids = {fields['product_id'] for _, _, _, fields in CASES
                     if 'product_id' in fields}
     with urllib.request.urlopen(base_url.rstrip('/') + '/products', timeout=10) as response:
@@ -68,7 +74,7 @@ def check(base_url):
             data=json.dumps({
                 'prompt': prompt, 'budget_yocto': str(budget * NEAR),
             }).encode(),
-            headers={'Content-Type': 'application/json'},
+            headers={'Content-Type': 'application/json', **auth},
             method='POST',
         )
         try:
@@ -102,11 +108,14 @@ if __name__ == '__main__':
     if args.repeat < 1:
         parser.error('--repeat must be at least 1')
     try:
+        token = os.environ.get('TREASURY_SESSION_TOKEN') or getpass.getpass('Verified session token: ')
+        if not token:
+            raise ValueError('A verified wallet session is required.')
         failures = 0
         for run in range(1, args.repeat + 1):
             print(f'Run {run}/{args.repeat}', flush=True)
-            failures += check(args.backend_url)
+            failures += check(args.backend_url, token)
         sys.exit(int(failures != 0))
-    except (urllib.error.URLError, TimeoutError, ValueError) as error:
+    except (urllib.error.URLError, TimeoutError, ValueError, EOFError) as error:
         print(f'Check failed: {error}', file=sys.stderr)
         sys.exit(1)

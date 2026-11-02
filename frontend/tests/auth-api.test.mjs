@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getAuthChallenge, getAuthSession, revokeSession, verifyWallet } from '../src/api.ts';
+import { createPurchase, getAuthChallenge, getAuthSession, revokeSession, verifyWallet } from '../src/api.ts';
 
 test('requests a challenge for the selected account and submits only the signed proof', async (t) => {
   const originalFetch = globalThis.fetch;
@@ -32,4 +32,16 @@ test('does not treat a rejected proof as an authenticated session', async (t) =>
   globalThis.fetch = async () => new Response(
     JSON.stringify({ error: 'invalid_challenge' }), { status: 401 });
   await assert.rejects(verifyWallet('nonce', 'key', 'signature'), /expired or was already used/);
+});
+
+test('purchase uses the verified session header without a caller-selected buyer', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/purchase-requests');
+    assert.equal(options.headers.Authorization, 'Bearer session-token');
+    assert.deepEqual(JSON.parse(options.body), { prompt: 'Buy paper', budget_yocto: '3' });
+    return new Response(JSON.stringify({ status: 'pending_payment' }), { status: 201 });
+  };
+  await createPurchase('Buy paper', '3', 'session-token');
 });

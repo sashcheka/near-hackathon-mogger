@@ -44,11 +44,12 @@ From another terminal:
 
 ```sh
 curl -i http://localhost:8080/purchase-requests \
+  -H "Authorization: Bearer $TREASURY_SESSION_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"prompt":"Buy one pack of toilet paper","budget_yocto":"3000000000000000000000000"}'
 ```
 
-The endpoint accepts exactly `prompt` and `budget_yocto`. Prompt length is 1–2000 UTF-8 bytes and cannot consist only of spaces, tabs, or line breaks. Budget follows the `/orders` amount format. A successful request returns HTTP 201 with the same unpaid order representation as `POST /orders`.
+The endpoint requires a [verified wallet session](AUTH.md) and accepts exactly `prompt` and `budget_yocto`. The backend takes the buyer from the session. Prompt length is 1–2000 UTF-8 bytes and cannot consist only of spaces, tabs, or line breaks. Budget follows the `/orders` amount format. A successful request returns HTTP 201 with the same unpaid order representation as `POST /orders`.
 
 The model receives product IDs and names. Its instructions require all explicit attributes to match, including ingredient/source, dietary restrictions, preparation, and negations. If none matches, it must return no match rather than a similar product. Among matching products, it prefers standard variants unless an upgrade is requested. These are model instructions, not deterministic guarantees. It returns only an ID and quantity under a [JSON schema](https://docs.ollama.com/capabilities/structured-outputs). The client validates the response independently; the order service rereads the current price and checks the budget in its own transaction. No transaction is held during inference. The model cannot set a price or authorize a payment. A valid selection can still misunderstand the user's intent; the user must review the order before paying.
 
@@ -70,7 +71,11 @@ No schema migration, C++ rebuild, or backend restart is needed. To check actual 
 python3 /app/backend/scripts/check_model_selection.py
 ```
 
-The script checks 20 requests against the full catalog, verifies the necessary products are present, and reports expected and actual choices on failures. Successful requests create unpaid demo orders. It returns a nonzero exit status on failure.
+The script asks for the verified browser session token without echoing it, or reads
+`TREASURY_SESSION_TOKEN` if set. It validates the session before checking 20 requests
+against the full catalog and reports expected and actual choices on failures.
+Successful requests create unpaid orders owned by that account. It returns a
+nonzero exit status on failure; see [local token lookup](AUTH.md#order-ownership).
 
 Reported runs with `qwen3:4b` passed 18/20 checks both before and after tightening the instructions: almond and unavailable soy milk were replaced with dairy products. With the revised sampling settings, all three reported runs passed 19/20 checks (57/60 executions of the same 20 cases). Almond milk matched correctly; unavailable soy milk was still replaced with lactose-free cow milk. This is an accepted PoC limitation requiring user review before payment. Budget and catalog checks do not verify semantic agreement with the user's request.
 
