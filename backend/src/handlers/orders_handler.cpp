@@ -41,6 +41,13 @@ std::string OrdersHandler::HandleRequestThrow(
     userver::server::request::RequestContext&) const {
   try {
     const auto buyer = AuthenticatedAccount(request, cluster_);
+    if (request.GetMethod() == userver::server::http::HttpMethod::kGet) {
+      json::ValueBuilder orders(json::Type::kArray);
+      for (const auto& order : service_.ListRecent(buyer))
+        orders.PushBack(OrderJson(order));
+      return JsonResponse(request, userver::server::http::HttpStatus::kOk,
+                          json::MakeObject("orders", orders.ExtractValue()));
+    }
     return CreatedOrderResponse(
         request, service_.Create(ParseRequest(request.RequestBody()), buyer));
   } catch (const AuthError& error) {

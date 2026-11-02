@@ -50,6 +50,7 @@ async def test_rejects_inactive_sessions_before_order_or_upstream_work(
     headers = {'Authorization': 'Bearer ' + token} if token else {}
     for method, path, body in [
         ('post', '/orders', ORDER), ('post', '/purchase-requests', PURCHASE),
+        ('get', '/orders', None),
         ('get', f'/orders/{owned_order}', None),
         ('post', f'/orders/{owned_order}/verify-payment', {'transaction_hash': HASH}),
     ]:

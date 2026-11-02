@@ -44,7 +44,7 @@ components_manager:
 
     handler-orders:
       path: /orders
-      method: POST
+      method: GET,POST
       task_processor: main-task-processor
 
     handler-order-details:

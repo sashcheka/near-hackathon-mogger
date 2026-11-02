@@ -64,4 +64,8 @@ Order OrdersService::Get(const std::string& id, const std::string& buyer_id) con
   return *order;
 }
 
+std::vector<Order> OrdersService::ListRecent(const std::string& buyer_id) const {
+  return orders_repository::ListRecent(cluster_, buyer_id);
+}
+
 }  // namespace community_treasury

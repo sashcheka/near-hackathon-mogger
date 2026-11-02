@@ -29,6 +29,12 @@ const pg::Query kFindOrder{
     "FROM orders WHERE id = $1::uuid AND buyer_id = $2",
     pg::Query::NameLiteral{"find_order"}};
 
+const pg::Query kListOrders{
+    "SELECT id::text, product_id, quantity, unit_price_yocto::text, "
+    "total_yocto::text, budget_yocto::text, status, receiver_id, network_id, buyer_id "
+    "FROM orders WHERE buyer_id = $1 ORDER BY created_at DESC, id DESC LIMIT 20",
+    pg::Query::NameLiteral{"list_recent_orders"}};
+
 }  // namespace
 
 std::optional<std::string> FindPriceForShare(pg::Transaction& transaction,
@@ -62,6 +68,12 @@ std::optional<Order> Find(const pg::ClusterPtr& cluster,
       cluster->Execute(pg::ClusterHostType::kMaster, kFindOrder, id, buyer_id);
   if (result.IsEmpty()) return std::nullopt;
   return result.AsSingleRow<Order>(pg::kRowTag);
+}
+
+std::vector<Order> ListRecent(const pg::ClusterPtr& cluster,
+                              const std::string& buyer_id) {
+  return cluster->Execute(pg::ClusterHostType::kMaster, kListOrders, buyer_id)
+      .AsContainer<std::vector<Order>>(pg::kRowTag);
 }
 
 }  // namespace community_treasury::orders_repository

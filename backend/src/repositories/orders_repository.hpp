@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
 #include "../domain/order.hpp"
@@ -20,5 +21,9 @@ Order Insert(userver::storages::postgres::Transaction& transaction,
 std::optional<Order> Find(
     const userver::storages::postgres::ClusterPtr& cluster,
     const std::string& id, const std::string& buyer_id);
+
+std::vector<Order> ListRecent(
+    const userver::storages::postgres::ClusterPtr& cluster,
+    const std::string& buyer_id);
 
 }  // namespace community_treasury::orders_repository

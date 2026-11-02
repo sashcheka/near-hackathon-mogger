@@ -47,6 +47,12 @@ The example shows one product; the seeded catalog has 18 across paper, groceries
 
 ## Orders API
 
+`GET /orders` requires a verified session and returns `{"orders":[...]}` with the
+account's 20 most recent orders, newest first. Each entry uses the saved order
+amounts and status. Equal creation times are ordered by descending UUID. Foreign
+and legacy unowned orders are excluded; caller-provided buyer IDs cannot change
+the filter. Full build and HTTP test execution for this endpoint are pending.
+
 `POST /orders` requires a verified session's `Authorization: Bearer <token>` and
 accepts exactly these fields. The buyer is taken from the session, never the body:
 
