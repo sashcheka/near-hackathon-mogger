@@ -94,12 +94,10 @@ export default function App() {
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel ordersOpen={view === 'orders'} onOrders={() => setView('orders')} />
+      <WalletPanel ordersOpen={view === 'orders'}
+        onToggleView={() => setView((current) => current === 'orders' ? 'purchase' : 'orders')} />
       <section id="workspace">
       {view === 'orders' ? <>
-        <button className="secondary-button" type="button" onClick={() => setView('purchase')}>
-          ← Back to purchase
-        </button>
         {session ? <MyOrders key={session.token} token={session.token}
           products={products} revision={ordersRevision} />
           : <p>Connect your wallet and verify ownership to see your orders.</p>}

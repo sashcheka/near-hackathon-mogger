@@ -5,7 +5,8 @@ test NEAR, then review the product, quantity and price. Model and budget errors
 appear in the form. Wallet transfer UI remains pending.
 
 **Orders**, to the left of the wallet buttons, opens a separate view instead of the
-purchase form. **Back to purchase** restores the form without losing input values.
+purchase form. The same button becomes **← Back to purchase** and restores the
+form without losing input values; there is no separate back button.
 After verification, **My orders** loads the account's 20 latest saved orders from
 `GET /orders`. It shows quantities, saved unit prices/totals, order IDs and statuses.
 Creation refreshes the list; reload restores it after session validation. Disconnect

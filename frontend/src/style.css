@@ -16,7 +16,6 @@ main header { margin-bottom: 28px; }
 .wallet-account { min-width: 0; flex: 1; }
 .wallet-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 main .secondary-button { background: transparent; color: #17664d; border: 1px solid #a1b6aa; }
-main .secondary-button[aria-pressed="true"] { background: #e0eee6; border-color: #17664d; }
 main h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; letter-spacing: -0.04em; }
 main h2 { margin-top: 8px; }
 main p { color: #4c625b; }

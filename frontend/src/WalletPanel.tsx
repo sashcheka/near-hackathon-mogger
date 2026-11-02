@@ -1,8 +1,8 @@
 import { useWallet } from './WalletProvider';
 
-type Props = { ordersOpen: boolean; onOrders: () => void };
+type Props = { ordersOpen: boolean; onToggleView: () => void };
 
-export default function WalletPanel({ ordersOpen, onOrders }: Props) {
+export default function WalletPanel({ ordersOpen, onToggleView }: Props) {
   const { accountId, ready, busy, error, session, authenticate, connect, disconnect } = useWallet();
   return <section className="wallet-panel" aria-label="NEAR Testnet wallet" aria-busy={busy}>
     <div className="wallet-controls">
@@ -12,8 +12,10 @@ export default function WalletPanel({ ordersOpen, onOrders }: Props) {
         {accountId && <small>{session ? 'Ownership verified' : 'Ownership not verified'}</small>}
       </div>
       <div className="wallet-actions" role="group" aria-label="Orders and wallet">
-        <button className="secondary-button" type="button" aria-pressed={ordersOpen}
-          aria-controls="workspace" onClick={onOrders}>Orders</button>
+        <button className="secondary-button" type="button"
+          aria-controls="workspace" onClick={onToggleView}>
+          {ordersOpen ? '← Back to purchase' : 'Orders'}
+        </button>
         {accountId && !session && <button type="button" disabled={busy}
         onClick={() => { void authenticate(); }}>Verify ownership</button>}
       <button type="button" disabled={busy || !ready}
