@@ -77,9 +77,11 @@ Click **Verify ownership** and approve the sign-in message to authenticate the c
 
 Order creation, retrieval and transfer verification now require a verified session. The backend saves the session account as the buyer and restricts access to its orders; old unowned orders remain stored but cannot be claimed. The frontend sends the token and clears its displayed order when the session changes. Apply migrations before rebuilding the backend. Full build/tests and the updated browser flow still need to be checked. Wallet connection does not mark orders paid.
 
-**My orders** shows the verified account's 20 latest saved orders with quantity,
+Click **Orders** to the left of the wallet buttons to show the verified account's
+20 latest saved orders with quantity,
 unit price, total and status. It loads after sign-in/reload, refreshes after a new
-order, and has a **Refresh** button. Old unowned orders do not appear. The list
+order, and has a **Refresh** button. **Back to purchase** returns to the form with
+its inputs preserved. Old unowned orders do not appear. The list
 requires the updated backend's `GET /orders`; no additional migration is needed.
 
 ## Merchant and transfer verification

@@ -10,6 +10,8 @@ import MyOrders from './MyOrders';
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
   const requestVersion = useRef(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const [view, setView] = useState<'purchase' | 'orders'>('purchase');
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('3');
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,6 +20,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ordersRevision, setOrdersRevision] = useState(0);
+
+  useEffect(() => { heading.current?.focus(); }, [view]);
 
   useEffect(() => {
     setOrder(null);
@@ -64,11 +68,23 @@ export default function App() {
     <main>
       <header>
         <p className="eyebrow">Community Treasury · NEAR Testnet</p>
-        <h1>A purchase within your budget.</h1>
-        <p>Describe what you need. Review the assistant’s selection before paying.</p>
+        <h1 ref={heading} tabIndex={-1}>
+          {view === 'orders' ? 'Your orders.' : 'A purchase within your budget.'}
+        </h1>
+        <p>{view === 'orders' ? 'Review your purchases and payment statuses.'
+          : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel />
+      <WalletPanel ordersOpen={view === 'orders'} onOrders={() => setView('orders')} />
+      <section id="workspace">
+      {view === 'orders' ? <>
+        <button className="secondary-button" type="button" onClick={() => setView('purchase')}>
+          ← Back to purchase
+        </button>
+        {session ? <MyOrders key={session.token} token={session.token}
+          products={products} revision={ordersRevision} />
+          : <p>Connect your wallet and verify ownership to see your orders.</p>}
+      </> : <>
       {!session && <p>Connect your wallet and verify ownership to create an order.</p>}
 
       <form onSubmit={submit}>
@@ -108,8 +124,8 @@ export default function App() {
           <small>Order: {order.id}</small>
         </article>}
       </section>
-      {session && <MyOrders key={session.token} token={session.token}
-        products={products} revision={ordersRevision} />}
+      </>}
+      </section>
     </main>
   );
 }

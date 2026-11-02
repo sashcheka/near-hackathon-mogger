@@ -1,20 +1,26 @@
 import { useWallet } from './WalletProvider';
 
-export default function WalletPanel() {
+type Props = { ordersOpen: boolean; onOrders: () => void };
+
+export default function WalletPanel({ ordersOpen, onOrders }: Props) {
   const { accountId, ready, busy, error, session, authenticate, connect, disconnect } = useWallet();
   return <section className="wallet-panel" aria-label="NEAR Testnet wallet" aria-busy={busy}>
     <div className="wallet-controls">
-      <div aria-live="polite">
+      <div className="wallet-account" aria-live="polite">
         <small>NEAR Testnet wallet</small>
         <strong>{accountId || (busy ? 'Checking connection…' : 'Not connected')}</strong>
         {accountId && <small>{session ? 'Ownership verified' : 'Ownership not verified'}</small>}
       </div>
-      {accountId && !session && <button type="button" disabled={busy}
+      <div className="wallet-actions" role="group" aria-label="Orders and wallet">
+        <button className="secondary-button" type="button" aria-pressed={ordersOpen}
+          aria-controls="workspace" onClick={onOrders}>Orders</button>
+        {accountId && !session && <button type="button" disabled={busy}
         onClick={() => { void authenticate(); }}>Verify ownership</button>}
       <button type="button" disabled={busy || !ready}
         onClick={() => { void (accountId ? disconnect() : connect()); }}>
         {busy ? 'Please wait…' : accountId ? 'Disconnect' : 'Connect wallet'}
       </button>
+      </div>
     </div>
     {error && <p className="error" role="alert">{error}</p>}
   </section>;

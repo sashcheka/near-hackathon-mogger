@@ -2,6 +2,8 @@
 
 React + TypeScript purchase screen, built with Vite. Enter a request and a budget in test NEAR, then review the selected product, quantity, price, and unpaid order. Model and budget errors appear in the form. Wallet payments are pending.
 
+**Orders**, to the left of the wallet buttons, opens a separate view instead of the
+purchase form. **Back to purchase** restores the form without losing input values.
 After verification, **My orders** loads the account's 20 latest saved orders from
 `GET /orders`. It shows quantities, saved unit prices/totals, order IDs and statuses.
 Creation refreshes the list; reload restores it after session validation. Disconnect
