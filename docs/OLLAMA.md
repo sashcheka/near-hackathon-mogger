@@ -46,7 +46,7 @@ From another terminal:
 curl -i http://localhost:8080/purchase-requests \
   -H "Authorization: Bearer $TREASURY_SESSION_TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"prompt":"Buy one pack of toilet paper","budget_yocto":"3000000000000000000000000"}'
+  -d '{"prompt":"Buy one pack of toilet paper","budget_yocto":"30000000000000000000000"}'
 ```
 
 The endpoint requires a [verified wallet session](AUTH.md) and accepts exactly `prompt` and `budget_yocto`. The backend takes the buyer from the session. Prompt length is 1–2000 UTF-8 bytes and cannot consist only of spaces, tabs, or line breaks. Budget follows the `/orders` amount format. A successful request returns HTTP 201 with the same unpaid order representation as `POST /orders`.

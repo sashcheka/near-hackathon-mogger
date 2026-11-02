@@ -4,7 +4,7 @@ import psycopg2.errors
 import pytest
 
 
-AMOUNT = '4000000000000000000000000'
+AMOUNT = '40000000000000000000000'
 REQUEST = {'product_id': 'toilet-paper', 'quantity': 2, 'budget_yocto': AMOUNT}
 
 
@@ -83,7 +83,7 @@ def test_payment_migration_preserves_existing_order(pgsql, migrate_database):
         cursor.execute(
             'INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, '
             'budget_yocto) VALUES (%s, 2, %s, %s, %s) RETURNING id::text',
-            ('toilet-paper', '2000000000000000000000000', AMOUNT, AMOUNT),
+            ('toilet-paper', '20000000000000000000000', AMOUNT, AMOUNT),
         )
         order_id = cursor.fetchone()[0]
     migrate_database(database.conninfo)

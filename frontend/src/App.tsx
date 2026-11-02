@@ -15,7 +15,7 @@ export default function App() {
   const [view, setView] = useState<'purchase' | 'orders'>('purchase');
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
-  const [budget, setBudget] = useState('3');
+  const [budget, setBudget] = useState('0.03');
   const [products, setProducts] = useState<Product[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState('');

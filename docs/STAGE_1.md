@@ -8,7 +8,7 @@ The model selects a product and quantity. The backend derives the amount from th
 
 ## Acceptance criteria
 
-- A request with a budget of 3 test NEAR can purchase a product priced at 2; a product priced at 50 is blocked.
+- A request with a budget of 0.03 test NEAR can purchase a product priced at 0.02; a product priced at 0.50 is blocked.
 - The model is actually called through an API or local runtime. Catalog data is treated as data, not instructions.
 - A model failure leaves the purchase unpaid and displays an error.
 - The user confirms an allowed purchase in their own wallet; the backend stores no wallet keys.

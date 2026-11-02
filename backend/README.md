@@ -214,7 +214,7 @@ docker compose run --rm migrate status
 docker compose run --rm --user "$(id -u):$(id -g)" migrate new create_orders
 ```
 
-Each migration has `-- migrate:up` and `-- migrate:down` sections. dbmate records applied versions in `schema_migrations`. Add new files rather than editing applied migrations. Demo data stays separate in `db/seed.sql`; migrations never seed it.
+Each migration has `-- migrate:up` and `-- migrate:down` sections. dbmate records applied versions in `schema_migrations`. Add new files rather than editing applied migrations. Demo data stays separate in `db/seed.sql`; migrations do not insert demo products. A price migration updates only existing demo rows at their original prices.
 
 The first migration uses `CREATE TABLE IF NOT EXISTS` to adopt the matching `products` table from our previous setup. It preserves existing rows and records the version; it does not reconcile arbitrary schema differences. Keep the existing PostgreSQL volume. Rolling back this initial migration drops `products` and its data.
 

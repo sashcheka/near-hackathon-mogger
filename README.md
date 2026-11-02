@@ -15,6 +15,8 @@ docker compose run --rm migrate &&
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury < backend/db/seed.sql
 ```
 
+Demo prices range from 0.01 to 0.50 test NEAR; toilet paper costs 0.02. Apply migrations to update an existing catalog. Existing orders keep their saved amounts; create a new order to use the new prices.
+
 **2. Another Mac terminal — Ollama.** Leave this server running:
 
 ```sh

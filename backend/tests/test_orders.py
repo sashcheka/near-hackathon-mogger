@@ -4,8 +4,8 @@ import psycopg2.errors
 import pytest
 
 
-PRICE = '2000000000000000000000000'
-TOTAL = '4000000000000000000000000'
+PRICE = '20000000000000000000000'
+TOTAL = '40000000000000000000000'
 REQUEST = {'product_id': 'toilet-paper', 'quantity': 2, 'budget_yocto': TOTAL}
 
 

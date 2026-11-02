@@ -5,7 +5,7 @@ import pytest
 
 
 REQUEST = {'prompt': 'Buy one pack of toilet paper',
-           'budget_yocto': '3000000000000000000000000'}
+           'budget_yocto': '30000000000000000000000'}
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ async def test_model_creates_unpaid_order(service_client, pgsql, ollama, buyer_t
     order = response.json()
     assert order['product_id'] == 'toilet-paper'
     assert order['quantity'] == 1
-    assert order['total_yocto'] == '2000000000000000000000000'
+    assert order['total_yocto'] == '20000000000000000000000'
     assert order['status'] == 'pending_payment'
     details = await service_client.get(f"/orders/{order['id']}", bearer=buyer_token)
     assert details.status == 200

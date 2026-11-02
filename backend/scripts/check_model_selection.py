@@ -9,7 +9,8 @@ import urllib.error
 import urllib.request
 
 
-NEAR = 10 ** 24
+# Case budgets are integer hundredths of test NEAR.
+CENTI_NEAR = 10 ** 22
 CASES = [
     ('Buy one pack of toilet paper', 3, 201,
      {'product_id': 'toilet-paper', 'quantity': 1}),
@@ -72,7 +73,7 @@ def check(base_url, token):
         request = urllib.request.Request(
             base_url.rstrip('/') + '/purchase-requests',
             data=json.dumps({
-                'prompt': prompt, 'budget_yocto': str(budget * NEAR),
+                'prompt': prompt, 'budget_yocto': str(budget * CENTI_NEAR),
             }).encode(),
             headers={'Content-Type': 'application/json', **auth},
             method='POST',
