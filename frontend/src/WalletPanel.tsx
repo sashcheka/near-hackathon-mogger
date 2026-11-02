@@ -1,13 +1,16 @@
 import { useWallet } from './WalletProvider';
 
 export default function WalletPanel() {
-  const { accountId, ready, busy, error, connect, disconnect } = useWallet();
+  const { accountId, ready, busy, error, session, authenticate, connect, disconnect } = useWallet();
   return <section className="wallet-panel" aria-label="NEAR Testnet wallet" aria-busy={busy}>
     <div className="wallet-controls">
       <div aria-live="polite">
         <small>NEAR Testnet wallet</small>
         <strong>{accountId || (busy ? 'Checking connection…' : 'Not connected')}</strong>
+        {accountId && <small>{session ? 'Ownership verified' : 'Ownership not verified'}</small>}
       </div>
+      {accountId && !session && <button type="button" disabled={busy}
+        onClick={() => { void authenticate(); }}>Verify ownership</button>}
       <button type="button" disabled={busy || !ready}
         onClick={() => { void (accountId ? disconnect() : connect()); }}>
         {busy ? 'Please wait…' : accountId ? 'Disconnect' : 'Connect wallet'}

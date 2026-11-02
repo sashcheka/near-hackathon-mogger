@@ -73,7 +73,9 @@ Click **Connect wallet**, choose a Testnet-compatible wallet, and approve the co
 
 If you do not have a Testnet account yet, create one in the selected wallet first. This does not configure the merchant recipient; that separate account will be set up before payments.
 
-Wallet connection, reload restoration, and disconnect passed browser checks. Backend ownership verification and wallet transfers remain pending. Wallet connection does not mark orders paid.
+Click **Verify ownership** and approve the sign-in message to authenticate the connected account. The backend checks the NEP-413 signature and the account's FullAccess key through Testnet RPC. This does not transfer funds. Authentication requires the latest database migration; see [API and checks](docs/AUTH.md). The browser keeps its session in memory, so reload requires verification again. Disconnect revokes the session.
+
+Wallet connection, reload restoration, and disconnect passed earlier browser checks. Authentication is implemented; its full build, tests and real-wallet check remain pending. Wallet transfers and order ownership restrictions are the next step. Wallet connection does not mark orders paid.
 
 ## Merchant and transfer verification
 

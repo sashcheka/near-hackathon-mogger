@@ -24,4 +24,13 @@ The store is a demo implementation. Product delivery is simulated. Autonomous sp
 3. Implement deterministic purchase validation and focused tests. Implemented for product, quantity, and per-order budget, with exact arithmetic and transactional price snapshots; test execution is pending.
 4. Connect the model to product selection. Local Ollama integration and `POST /purchase-requests` are implemented; `qwen3:4b` passed 19/20 catalog checks in three reported runs. The remaining mismatch is accepted for the PoC with user review; HTTP test-suite execution remains unconfirmed. See [setup](OLLAMA.md).
 5. Add the React purchase screen. Implemented: request and budget input, order review, and error display. The user reports the screen running; see [frontend setup](../frontend/README.md).
-6. Connect the wallet and verify Testnet payments end to end. Order lookup and Testnet wallet connection/restoration/disconnect passed reported checks. Merchant configuration and read-only RPC transfer verification are implemented; the new verifier's build and HTTP tests are pending. Buyer/order binding, authenticated ownership, replay protection, durable payment recording, and wallet transfers remain pending. See [verification scope](PAYMENTS.md).
+6. Connect the wallet and verify Testnet payments end to end. Order lookup and Testnet wallet connection/restoration/disconnect passed reported checks. Merchant configuration, read-only RPC transfer verification and NEP-413 wallet authentication are implemented. Full authentication build/tests and the real-wallet check are pending. Buyer/order binding, payment replay protection, durable payment recording, and wallet transfers remain pending. See [verification scope](PAYMENTS.md) and [authentication](AUTH.md).
+
+## After the first confirmed payment
+
+- Store view with product prices, available stock and quantities.
+- Purchase history with persisted order and payment statuses.
+- Multiple merchants with separate catalogs and payment recipients.
+
+The next milestone remains one real Testnet payment: authenticated buyer, bound
+order, wallet confirmation, finalized verification and a durable `paid` result.

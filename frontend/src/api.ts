@@ -11,6 +11,9 @@ export type Order = {
 };
 
 const errors: Record<string, string> = {
+  unauthorized: 'Wallet verification failed or your session expired. Please verify again.',
+  invalid_challenge: 'The sign-in request expired or was already used. Please try again.',
+  auth_rpc_failed: 'The wallet verification service is unavailable. Please try again.',
   invalid_request: 'Check your request and budget.',
   product_not_found: 'The selected product is no longer available.',
   budget_exceeded: 'The selected purchase exceeds your budget.',
@@ -36,6 +39,31 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
+
+export type AuthChallenge = {
+  nonce: string;
+  message: string;
+  recipient: string;
+  expires_in: number;
+};
+export type AuthSession = { token: string; account_id: string; expires_in: number };
+
+export const getAuthChallenge = (accountId: string) => request<AuthChallenge>('/auth/challenge', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ account_id: accountId }),
+});
+
+export const verifyWallet = (nonce: string, publicKey: string, signature: string) =>
+  request<AuthSession>('/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nonce, public_key: publicKey, signature }),
+  });
+
+export const revokeSession = (token: string) => request('/auth/session', {
+  method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+});
 
 export const createPurchase = (prompt: string, budget: string) =>
   request<Order>('/purchase-requests', {

@@ -33,3 +33,17 @@ user. Order access restrictions and payment recording are separate steps.
 Invalid input returns 400; invalid/expired/reused challenges and invalid signatures
 or account keys return 401. RPC failures return 502/503/504 and never create a
 session. No fallback accepts an unverified account.
+
+## Browser check
+
+Connect a Testnet wallet, click **Verify ownership**, and approve the sign-in
+message. The wallet must show the configured recipient. The page then displays
+**Ownership verified**. Canceling signing must leave the user unverified.
+
+The browser keeps the token in memory: reload requires signing again, while wallet
+connection itself can be restored. Disconnect revokes the active session. Switching
+accounts clears local verification and discards results from an older sign-in.
+Backend/API tests cover real Ed25519 signatures with public RFC 8032 test keys,
+single-use/concurrent verification, expiry, payload changes and rejected RPC keys.
+TypeScript and C++ syntax checks passed; full build, test-suite execution and a real
+wallet signature still need to be checked by the developer.
