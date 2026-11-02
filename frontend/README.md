@@ -2,6 +2,13 @@
 
 React + TypeScript purchase screen, built with Vite. Enter a request and a budget in test NEAR, then review the selected product, quantity, price, and unpaid order. Model and budget errors appear in the form. Wallet payments are pending.
 
+After verification, **My orders** loads the account's 20 latest saved orders from
+`GET /orders`. It shows quantities, saved unit prices/totals, order IDs and statuses.
+Creation refreshes the list; reload restores it after session validation. Disconnect
+hides it, and account changes discard pending results from the previous session.
+Check creation, reload, manual Refresh and switching between two verified accounts.
+Full build, tests and browser checks for the list remain pending.
+
 Wallet connection uses `@hot-labs/near-connect`, fixed to Testnet and wallets supporting sign-in without adding a key and NEP-413 signing. `WalletProvider` owns the connector and account/session state; `WalletPanel` provides connection and ownership verification. The tab saves its token in `sessionStorage` and validates it with the backend after reload, without extending its one-hour expiry. Disconnect revokes the session and clears storage. Transfers remain pending; see [authentication](../docs/AUTH.md).
 
 ## Development

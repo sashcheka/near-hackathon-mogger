@@ -40,6 +40,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
 
+export const getOrders = (token: string) => request<{ orders: Order[] }>('/orders', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
 export type AuthChallenge = {
   nonce: string;
   message: string;

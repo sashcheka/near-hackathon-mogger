@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPurchase, getAuthChallenge, getAuthSession, revokeSession, verifyWallet } from '../src/api.ts';
+import { createPurchase, getAuthChallenge, getAuthSession, getOrders, revokeSession, verifyWallet } from '../src/api.ts';
 
 test('requests a challenge for the selected account and submits only the signed proof', async (t) => {
   const originalFetch = globalThis.fetch;
@@ -44,4 +44,27 @@ test('purchase uses the verified session header without a caller-selected buyer'
     return new Response(JSON.stringify({ status: 'pending_payment' }), { status: 201 });
   };
   await createPurchase('Buy paper', '3', 'session-token');
+});
+
+test('order history uses the verified session without selecting a buyer in the URL', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/orders');
+    assert.deepEqual(options.headers, { Authorization: 'Bearer session-token' });
+    return new Response(JSON.stringify({ orders: [] }));
+  };
+  assert.deepEqual(await getOrders('session-token'), { orders: [] });
+});
+
+test('rejected history requests do not retry anonymously', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    ++calls;
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
+  };
+  await assert.rejects(getOrders('expired-token'), /session expired/);
+  assert.equal(calls, 1);
 });

@@ -33,6 +33,11 @@ main button:disabled { opacity: 0.6; cursor: wait; }
 main article { margin-top: 24px; }
 main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
 main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.orders-scroll { overflow-x: auto; }
+.orders-table { width: 100%; min-width: 520px; border-collapse: collapse; background: white; }
+.orders-table th, .orders-table td { padding: 12px; text-align: left; border-bottom: 1px solid #d8e1d9; }
+.orders-table td { font-variant-numeric: tabular-nums; }
+.orders-table small { max-width: 180px; }
 @media (max-width: 420px) {
   main { padding: 24px 12px; }
   main form, main article { padding: 16px; }

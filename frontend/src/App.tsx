@@ -5,6 +5,7 @@ import type { Order, Product } from './api';
 import { fromYocto, toYocto } from './amounts';
 import WalletPanel from './WalletPanel';
 import { useWallet } from './WalletProvider';
+import MyOrders from './MyOrders';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
@@ -16,6 +17,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ordersRevision, setOrdersRevision] = useState(0);
 
   useEffect(() => {
     setOrder(null);
@@ -46,7 +48,10 @@ export default function App() {
       const amount = toYocto(budget.trim());
       setBusy(true);
       const created = await createPurchase(prompt.trim(), amount, session.token);
-      if (requestVersion.current === version) setOrder(created);
+      if (requestVersion.current === version) {
+        setOrder(created);
+        setOrdersRevision((revision) => revision + 1);
+      }
     } catch (error) {
       if (requestVersion.current === version)
         setError(error instanceof Error ? error.message : 'The request could not be completed.');
@@ -103,6 +108,8 @@ export default function App() {
           <small>Order: {order.id}</small>
         </article>}
       </section>
+      {session && <MyOrders key={session.token} token={session.token}
+        products={products} revision={ordersRevision} />}
     </main>
   );
 }

@@ -32,7 +32,7 @@ user. Payment recording remains a separate step.
 
 ## Order ownership
 
-`POST /orders`, `POST /purchase-requests`, `GET /orders/{id}` and
+`GET /orders`, `POST /orders`, `POST /purchase-requests`, `GET /orders/{id}` and
 `POST /orders/{id}/verify-payment` require the session's Bearer token. The backend
 saves the session account as `buyer_id`; request fields cannot override it. Order
 lookup is filtered by account in SQL. Foreign and legacy unowned orders return

@@ -29,7 +29,7 @@ The store is a demo implementation. Product delivery is simulated. Autonomous sp
 ## After the first confirmed payment
 
 - Store view with product prices, available stock and quantities.
-- Purchase history with persisted order and payment statuses.
+- Extend the recent-order list with full history and verified payment results.
 - Multiple merchants with separate catalogs and payment recipients.
 
 The next milestone remains one real Testnet payment: authenticated buyer, bound
