@@ -2,7 +2,7 @@
 
 React + TypeScript purchase screen, built with Vite. Enter a request and a budget in test NEAR, then review the selected product, quantity, price, and unpaid order. Model and budget errors appear in the form. Wallet payments are pending.
 
-Wallet connection uses `@hot-labs/near-connect`, fixed to Testnet and wallets supporting sign-in without adding a key. `WalletProvider` owns one connector and shared account state; `WalletPanel` displays Connect/Disconnect, account ID, progress, and errors. SDK events update the state, existing connections are restored on startup, and React listeners are removed on unmount. Backend authentication and transfers are not implemented.
+Wallet connection uses `@hot-labs/near-connect`, fixed to Testnet and wallets supporting sign-in without adding a key and NEP-413 signing. `WalletProvider` owns the connector and account/session state; `WalletPanel` provides connection and ownership verification. The tab saves its token in `sessionStorage` and validates it with the backend after reload, without extending its one-hour expiry. Disconnect revokes the session and clears storage. Transfers remain pending; see [authentication](../docs/AUTH.md).
 
 ## Development
 

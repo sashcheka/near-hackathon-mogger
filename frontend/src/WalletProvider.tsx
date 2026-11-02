@@ -2,8 +2,10 @@ import { NearConnector } from '@hot-labs/near-connect';
 import type { Account, NearWalletBase } from '@hot-labs/near-connect';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { getAuthChallenge, revokeSession, verifyWallet } from './api';
+import { getAuthChallenge, getAuthSession, revokeSession, verifyWallet } from './api';
 import type { AuthSession } from './api';
+import { clearSession, restoreSession, saveSession } from './walletSession';
+import type { SavedSession } from './walletSession';
 
 type Connection = { wallet: NearWalletBase; accounts: Account[] };
 type WalletState = {
@@ -25,11 +27,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const [session, setSession] = useState<SavedSession | null>(null);
 
   useEffect(() => {
     if (!session) return;
-    const timeout = setTimeout(() => setSession(null), session.expires_in * 1000);
+    const timeout = setTimeout(() => {
+      clearSession();
+      setSession(null);
+    }, Math.max(0, session.expires_at - Date.now()));
     return () => clearTimeout(timeout);
   }, [session]);
 
@@ -41,25 +46,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         autoConnect: false,
         features: { testnet: true, signInWithoutAddKey: true, signMessage: true },
       });
-      const signedIn = (value: Connection) => {
+      const signedIn = async (value: Connection) => {
         if (!active) return;
-        ++generation.current;
+        const version = ++generation.current;
         setSession(null);
-        setConnection(value.wallet.manifest.features.testnet &&
+        const supported = value.wallet.manifest.features.testnet &&
           value.wallet.manifest.features.signMessage &&
-          value.accounts[0]?.accountId ? value : null);
+          value.accounts[0]?.accountId;
+        setConnection(supported ? value : null);
+        setBusy(true);
+        const restored = supported
+          ? await restoreSession(value.accounts[0].accountId, getAuthSession) : null;
+        if (!active || generation.current !== version) return;
+        if (!restored) clearSession();
+        setSession(restored);
+        setBusy(false);
       };
       const signedOut = () => {
         if (!active) return;
         ++generation.current;
+        clearSession();
         setSession(null);
         setConnection(null);
+        setBusy(false);
       };
       client.on('wallet:signIn', signedIn);
       client.on('wallet:signOut', signedOut);
-      client.getConnectedWallet().then(signedIn).catch(signedOut).finally(() => {
-        if (active) setBusy(false);
-      });
+      client.getConnectedWallet().then(signedIn).catch(signedOut);
       setReady(true);
       return () => {
         active = false;
@@ -75,7 +88,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   async function authenticate() {
     if (busy || !connection) return;
-    const version = generation.current;
+    const version = ++generation.current;
     const accountId = connection.accounts[0].accountId;
     setBusy(true);
     setError('');
@@ -96,7 +109,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         await revokeSession(verified.token).catch(() => {});
         return;
       }
-      setSession(verified);
+      setSession(saveSession(verified));
     } catch (error) {
       if (generation.current === version) setError(error instanceof Error
         ? error.message : 'Wallet verification failed. Please try again.');
@@ -131,6 +144,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError('');
     try {
       if (session) await revokeSession(session.token);
+      ++generation.current;
+      clearSession();
       setSession(null);
       await connector.current.disconnect(connection.wallet);
     } catch {

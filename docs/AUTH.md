@@ -40,9 +40,15 @@ Connect a Testnet wallet, click **Verify ownership**, and approve the sign-in
 message. The wallet must show the configured recipient. The page then displays
 **Ownership verified**. Canceling signing must leave the user unverified.
 
-The browser keeps the token in memory: reload requires signing again, while wallet
-connection itself can be restored. Disconnect revokes the active session. Switching
-accounts clears local verification and discards results from an older sign-in.
+The tab keeps the token and original expiry in `sessionStorage`. Reload restores
+the wallet connection, then checks `GET /auth/session` before showing verification.
+The saved account, connected account and backend account must match. Reload does
+not extend the one-hour expiry. An expired/revoked token or an unavailable backend
+leaves the user unverified. Closing the tab clears storage; disabled storage keeps
+login in memory only. Disconnect revokes the active session and clears storage.
+Switching accounts clears local verification and discards older sign-in results.
+Manually check sign-in, reload, Disconnect, and reload again: the final reload must
+not restore verification. No backend rebuild or migration is needed for this change.
 Backend/API tests cover real Ed25519 signatures with public RFC 8032 test keys,
 single-use/concurrent verification, expiry, payload changes and rejected RPC keys.
 TypeScript and C++ syntax checks passed; full build, test-suite execution and a real

@@ -65,6 +65,10 @@ export const revokeSession = (token: string) => request('/auth/session', {
   method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
 });
 
+export const getAuthSession = (token: string) => request<{ account_id: string }>('/auth/session', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
 export const createPurchase = (prompt: string, budget: string) =>
   request<Order>('/purchase-requests', {
     method: 'POST',
