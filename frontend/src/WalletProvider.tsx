@@ -31,6 +31,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const [session, setSession] = useState<SavedSession | null>(null);
+  const connectionVersion = generation.current;
 
   useEffect(() => {
     if (!session) return;
@@ -123,7 +124,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }
 
   async function sendTransfer(payment: PaymentDetails) {
-    if (sending.current || busy || !connection || !session)
+    if (generation.current !== connectionVersion || sending.current || busy || !connection || !session)
       throw new PaymentNotSent('Connect and verify your wallet before paying.');
     const version = generation.current;
     sending.current = true;
@@ -174,11 +175,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   async function disconnect() {
     if (busy || !connection || !connector.current) return;
+    ++generation.current;
     setBusy(true);
     setError('');
     try {
       if (session) await revokeSession(session.token);
-      ++generation.current;
       clearSession();
       setSession(null);
       await connector.current.disconnect(connection.wallet);
