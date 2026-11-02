@@ -51,19 +51,29 @@ def near_rpc(mockserver, pgsql, seed_catalog, buyer_token):
             assert body['params'] == []
             result = {'chain_id': state['chain_id']}
         elif body['method'] == 'tx':
-            assert body['method'] == 'tx'
-            assert body['params'] == {'tx_hash': HASH, 'sender_account_id': 'buyer.testnet',
+            requested_hash = body['params']['tx_hash']
+            assert requested_hash in (HASH, state.get('alternative_hash'))
+            assert body['params'] == {'tx_hash': requested_hash, 'sender_account_id': 'buyer.testnet',
                                       'wait_until': 'FINAL'}
             await asyncio.sleep(state['delay'])
             result = state['result']
+            if requested_hash != HASH:
+                result = copy.deepcopy(result)
+                result['transaction']['hash'] = requested_hash
+                result['transaction_outcome']['id'] = requested_hash
         else:
             assert body['method'] == 'block'
             assert body['params'] == {'block_id': BLOCK_HASH}
             result = state['block']
+            if barrier := state.get('block_barrier'):
+                await barrier.wait()
+            if callback := state.pop('before_block_reply', None):
+                callback()
         reply = {'jsonrpc': '2.0', 'id': body['id'], 'result': result}
         if body['method'] == 'tx':
             reply = state.get('reply', reply)
-        return mockserver.make_response(status=state['http_status'], json=reply)
+        status = state.get('block_http_status', state['http_status']) if body['method'] == 'block' else state['http_status']
+        return mockserver.make_response(status=status, json=reply)
 
     return state
 
@@ -256,4 +266,115 @@ async def test_missing_outcome_block_is_rejected(service_client, pgsql, near_rpc
     response = await verify(service_client, near_rpc)
     assert response.status == 502 and response.json() == {'error': 'invalid_rpc_response'}
     assert near_rpc['calls'] == ['status', 'tx']
+    assert_unpaid(pgsql, near_rpc)
+
+
+def copy_order(pgsql, order_id):
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute(
+            'INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, '
+            'budget_yocto, receiver_id, buyer_id, created_at) '
+            'SELECT product_id, quantity, unit_price_yocto, total_yocto, budget_yocto, '
+            'receiver_id, buyer_id, created_at FROM orders WHERE id = %s RETURNING id::text',
+            (order_id,))
+        return cursor.fetchone()[0]
+
+
+async def test_repeat_returns_saved_result_when_rpc_is_down(service_client, pgsql, near_rpc):
+    first = await verify(service_client, near_rpc)
+    assert first.status == 200
+    near_rpc.update(http_status=503, calls=[])
+    repeated = await verify(service_client, near_rpc)
+    assert repeated.status == 200 and repeated.json() == first.json()
+    assert near_rpc['calls'] == []
+    assert_paid(pgsql, near_rpc)
+
+
+async def test_paid_order_rejects_another_transaction(service_client, pgsql, near_rpc):
+    assert (await verify(service_client, near_rpc)).status == 200
+    near_rpc['calls'].clear()
+    response = await verify(service_client, near_rpc, transaction_hash='B' * 44)
+    assert response.status == 409 and response.json() == {'error': 'order_already_paid'}
+    assert near_rpc['calls'] == []
+    assert_paid(pgsql, near_rpc)
+
+
+async def test_transaction_cannot_pay_a_second_order(service_client, pgsql, near_rpc):
+    second_id = copy_order(pgsql, near_rpc['order_id'])
+    assert (await verify(service_client, near_rpc)).status == 200
+    second = {**near_rpc, 'order_id': second_id}
+    response = await verify(service_client, second)
+    assert response.status == 409 and response.json() == {'error': 'transaction_already_used'}
+    assert_unpaid(pgsql, second)
+    assert_paid(pgsql, near_rpc)
+
+
+@pytest.mark.parametrize('offset', [-1, 0, 1])
+async def test_transfer_must_follow_order_creation_exactly(service_client, pgsql, near_rpc, offset):
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute("UPDATE orders SET created_at = '2026-01-01T00:00:00Z' WHERE id = %s",
+                       (near_rpc['order_id'],))
+    near_rpc['block']['header']['timestamp_nanosec'] = str(1767225600000000000 + offset)
+    response = await verify(service_client, near_rpc)
+    if offset > 0:
+        assert response.status == 200
+        assert_paid(pgsql, near_rpc)
+    else:
+        assert response.status == 409 and response.json() == {'error': 'transaction_before_order'}
+        assert_unpaid(pgsql, near_rpc)
+
+
+async def test_block_lookup_failure_records_nothing(service_client, pgsql, near_rpc):
+    near_rpc['block_http_status'] = 503
+    response = await verify(service_client, near_rpc)
+    assert response.status == 503 and response.json() == {'error': 'rpc_unavailable'}
+    assert_unpaid(pgsql, near_rpc)
+
+
+@pytest.mark.parametrize('barrier', [False, True])
+async def test_concurrent_same_payment_is_idempotent(service_client, pgsql, near_rpc, barrier):
+    if barrier:
+        near_rpc['block_barrier'] = asyncio.Barrier(2)
+    responses = await asyncio.gather(verify(service_client, near_rpc), verify(service_client, near_rpc))
+    assert [response.status for response in responses] == [200, 200]
+    assert responses[0].json() == responses[1].json()
+    assert_paid(pgsql, near_rpc)
+
+
+async def test_concurrent_orders_cannot_share_a_payment(service_client, pgsql, near_rpc):
+    second_id = copy_order(pgsql, near_rpc['order_id'])
+    near_rpc['block_barrier'] = asyncio.Barrier(2)
+    responses = await asyncio.gather(
+        verify(service_client, near_rpc), verify(service_client, {**near_rpc, 'order_id': second_id}))
+    assert sorted(response.status for response in responses) == [200, 409]
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM payments')
+        assert cursor.fetchone() == (1,)
+        cursor.execute('SELECT status FROM orders ORDER BY status')
+        assert cursor.fetchall() == [('paid',), ('pending_payment',)]
+
+
+async def test_concurrent_transfers_cannot_pay_one_order_twice(service_client, pgsql, near_rpc):
+    near_rpc.update(block_barrier=asyncio.Barrier(2), alternative_hash='B' * 44)
+    responses = await asyncio.gather(
+        verify(service_client, near_rpc), verify(service_client, near_rpc, transaction_hash='B' * 44))
+    assert sorted(response.status for response in responses) == [200, 409]
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT transaction_hash FROM payments')
+        payments = cursor.fetchall()
+        assert len(payments) == 1 and payments[0][0] in (HASH, 'B' * 44)
+        cursor.execute('SELECT status FROM orders')
+        assert cursor.fetchone() == ('paid',)
+
+
+@pytest.mark.parametrize('field', ['receiver', 'amount'])
+async def test_order_snapshot_is_rechecked_after_rpc(service_client, pgsql, near_rpc, field):
+    def change_order():
+        with pgsql['treasury'].cursor() as cursor:
+            sql = ("UPDATE orders SET receiver_id = 'other.testnet' WHERE id = %s" if field == 'receiver'
+                   else 'UPDATE orders SET unit_price_yocto = 1, total_yocto = 1 WHERE id = %s')
+            cursor.execute(sql, (near_rpc['order_id'],))
+    near_rpc['before_block_reply'] = change_order
+    response = await verify(service_client, near_rpc)
+    assert response.status == 409 and response.json() == {'error': 'order_changed'}
     assert_unpaid(pgsql, near_rpc)

@@ -25,6 +25,8 @@ Order PaymentsService::Verify(const std::string& order_id,
   if (previous) {
     if (*previous != hash)
       throw PaymentError(PaymentErrorCode::kOrderAlreadyPaid);
+    // A concurrent request may have committed since the first order lookup.
+    order = orders_.Get(order_id, buyer);
     if (order.status != "paid")
       throw PaymentError(PaymentErrorCode::kOrderChanged);
     return order;
