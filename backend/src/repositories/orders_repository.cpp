@@ -18,14 +18,14 @@ const pg::Query kFindPrice{
 
 const pg::Query kInsertOrder{
     "INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, "
-    "budget_yocto, receiver_id) VALUES ($1, $2, $3::text::numeric, "
+    "budget_yocto, receiver_id, buyer_id) VALUES ($1, $2, $3::text::numeric, "
     "$4::text::numeric, "
-    "$5::text::numeric, NULLIF($6, '')) RETURNING id::text",
+    "$5::text::numeric, NULLIF($6, ''), NULLIF($7, '')) RETURNING id::text",
     pg::Query::NameLiteral{"insert_order"}};
 
 const pg::Query kFindOrder{
     "SELECT id::text, product_id, quantity, unit_price_yocto::text, "
-    "total_yocto::text, budget_yocto::text, status, receiver_id, network_id "
+    "total_yocto::text, budget_yocto::text, status, receiver_id, network_id, buyer_id "
     "FROM orders WHERE id = $1::uuid",
     pg::Query::NameLiteral{"find_order"}};
 
@@ -40,10 +40,11 @@ std::optional<std::string> FindPriceForShare(pg::Transaction& transaction,
 
 Order Insert(pg::Transaction& transaction, const CreateOrderRequest& request,
              const std::string& unit_price, const std::string& total,
-             const std::string& receiver_id) {
+             const std::string& receiver_id, const std::string& buyer_id) {
   const auto result =
       transaction.Execute(kInsertOrder, request.product_id, request.quantity,
-                          unit_price, total, request.budget_yocto, receiver_id);
+                          unit_price, total, request.budget_yocto, receiver_id,
+                          buyer_id);
   Order order{result.AsSingleRow<std::string>(),
               request.product_id,
               request.quantity,
@@ -51,6 +52,7 @@ Order Insert(pg::Transaction& transaction, const CreateOrderRequest& request,
               total,
               request.budget_yocto};
   if (!receiver_id.empty()) order.receiver_id = receiver_id;
+  if (!buyer_id.empty()) order.buyer_id = buyer_id;
   return order;
 }
 

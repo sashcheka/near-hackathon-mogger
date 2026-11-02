@@ -26,6 +26,7 @@ struct Order {
   std::string status = "pending_payment";
   std::optional<std::string> receiver_id = std::nullopt;
   std::string network_id = "testnet";
+  std::optional<std::string> buyer_id = std::nullopt;
 };
 
 enum class OrderErrorCode {
