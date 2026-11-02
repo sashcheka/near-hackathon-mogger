@@ -20,6 +20,7 @@ def test_adopt_existing_catalog_and_repeat_migration(pgsql, migrate_database):
         cursor.execute('SELECT version FROM schema_migrations ORDER BY version')
         assert cursor.fetchall() == [
             ('20261024000100',), ('20261024000200',), ('20261028000100',),
+            ('20261102000100',),
         ]
         cursor.execute('SELECT count(*) FROM products')
         assert cursor.fetchone() == catalog_size
