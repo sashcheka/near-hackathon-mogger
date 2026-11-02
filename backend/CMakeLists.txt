@@ -16,6 +16,7 @@ userver_setup_environment()
 
 add_executable(community_treasury_backend
     src/main.cpp
+    src/handlers/auth_handler.cpp
     src/repositories/auth_repository.cpp
     src/services/auth_service.cpp
     src/handlers/products_handler.cpp

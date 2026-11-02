@@ -27,6 +27,16 @@ components_manager:
       method: GET
       task_processor: main-task-processor
 
+    handler-auth:
+      path: /auth/{action}
+      method: GET,POST,DELETE
+      task_processor: main-task-processor
+      max_request_size: 4096
+      rpc-url#env: NEAR_TESTNET_RPC_URL
+      rpc-url#fallback: https://rpc.testnet.near.org
+      recipient#env: AUTH_RECIPIENT
+      recipient#fallback: localhost:5173
+
     handler-products:
       path: /products
       method: GET

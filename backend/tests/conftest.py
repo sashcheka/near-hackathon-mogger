@@ -15,6 +15,8 @@ def userver_config_http_client(userver_config_http_client, mockserver_info):
         userver_config_http_client(config, config_vars)
         components = config['components_manager']['components']
         overrides = {
+            'handler-auth': {'rpc-url': mockserver_info.url('/near-rpc'),
+                             'recipient': 'localhost:5173'},
             'merchant-settings': {'account-id': 'merchant.testnet'},
             'handler-verify-payment': {'rpc-url': mockserver_info.url('/near-rpc')},
             'handler-purchase': {'ollama-url': mockserver_info.url('/api/chat'),

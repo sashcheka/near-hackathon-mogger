@@ -12,6 +12,7 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include "components/merchant_settings.hpp"
+#include "handlers/auth_handler.hpp"
 #include "handlers/order_details_handler.hpp"
 #include "handlers/orders_handler.hpp"
 #include "handlers/payment_verification_handler.hpp"
@@ -42,6 +43,7 @@ int main(int argc, char* argv[]) {
   const auto components =
       userver::components::MinimalServerComponentList()
           .Append<community_treasury::HealthHandler>()
+          .Append<community_treasury::AuthHandler>()
           .Append<community_treasury::ProductsHandler>()
           .Append<community_treasury::OrdersHandler>()
           .Append<community_treasury::OrderDetailsHandler>()
