@@ -7,7 +7,7 @@ export type Order = {
   unit_price_yocto: string;
   total_yocto: string;
   budget_yocto: string;
-  status: 'pending_payment';
+  status: 'pending_payment' | 'paid';
 };
 
 const errors: Record<string, string> = {
@@ -41,6 +41,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const getProducts = () => request<{ products: Product[] }>('/products');
 
 export const getOrders = (token: string) => request<{ orders: Order[] }>('/orders', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+export const getOrder = (id: string, token: string) => request<Order>(`/orders/${encodeURIComponent(id)}`, {
   headers: { Authorization: `Bearer ${token}` },
 });
 

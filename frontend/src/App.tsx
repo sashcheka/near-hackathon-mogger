@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createPurchase, getProducts } from './api';
+import { createPurchase, getOrder, getProducts } from './api';
 import type { Order, Product } from './api';
 import { fromYocto, toYocto } from './amounts';
 import WalletPanel from './WalletPanel';
@@ -12,6 +12,7 @@ export default function App() {
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const [view, setView] = useState<'purchase' | 'orders'>('purchase');
+  const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('3');
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,7 +22,25 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [ordersRevision, setOrdersRevision] = useState(0);
 
-  useEffect(() => { heading.current?.focus(); }, [view]);
+  useEffect(() => {
+    if (previousView.current !== view) heading.current?.focus();
+    previousView.current = view;
+  }, [view]);
+
+  useEffect(() => {
+    if (view !== 'purchase' || !order?.id || !session) return;
+    let active = true;
+    const version = requestVersion.current;
+    getOrder(order.id, session.token).then((saved) => {
+      if (active && requestVersion.current === version) setOrder(saved);
+    }).catch((error: Error) => {
+      if (active && requestVersion.current === version) {
+        setOrder(null);
+        setError(error.message);
+      }
+    });
+    return () => { active = false; };
+  }, [view, order?.id, session?.token]);
 
   useEffect(() => {
     setOrder(null);
@@ -112,7 +131,7 @@ export default function App() {
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
         {order && <article>
-          <p className="eyebrow">Review your order · Unpaid</p>
+          <p className="eyebrow">Review your order · {order.status === 'paid' ? 'Paid' : 'Unpaid'}</p>
           <h2>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</h2>
           <dl>
             <dt>Quantity</dt><dd>{order.quantity}</dd>
@@ -120,7 +139,8 @@ export default function App() {
             <dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd>
             <dt>Budget</dt><dd>{fromYocto(order.budget_yocto)} test NEAR</dd>
           </dl>
-          <p>Check that the product and quantity match your request. No funds have been sent.</p>
+          <p>{order.status === 'paid' ? 'Payment confirmed on NEAR Testnet.'
+            : 'Check that the product and quantity match your request before paying.'}</p>
           <small>Order: {order.id}</small>
         </article>}
       </section>

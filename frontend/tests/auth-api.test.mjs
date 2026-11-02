@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPurchase, getAuthChallenge, getAuthSession, getOrders, revokeSession, verifyWallet } from '../src/api.ts';
+import { createPurchase, getAuthChallenge, getAuthSession, getOrder, getOrders, revokeSession, verifyWallet } from '../src/api.ts';
 
 test('requests a challenge for the selected account and submits only the signed proof', async (t) => {
   const originalFetch = globalThis.fetch;
@@ -67,4 +67,15 @@ test('rejected history requests do not retry anonymously', async (t) => {
   };
   await assert.rejects(getOrders('expired-token'), /session expired/);
   assert.equal(calls, 1);
+});
+
+test('order review reloads the saved payment status using the session', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/orders/order-id');
+    assert.deepEqual(options.headers, { Authorization: 'Bearer session-token' });
+    return new Response(JSON.stringify({ id: 'order-id', status: 'paid' }));
+  };
+  assert.equal((await getOrder('order-id', 'session-token')).status, 'paid');
 });

@@ -28,7 +28,7 @@ records are removed when issuing new challenges. Auth responses use `no-store`.
 when deploying elsewhere. `NEAR_TESTNET_RPC_URL` configures the RPC endpoint.
 Apply migrations before starting the updated backend. A backend restart does not
 invalidate unexpired sessions. Connecting a wallet alone does not authenticate a
-user. Payment recording remains a separate step.
+user. [Payment acceptance](PAYMENTS.md) uses the same account session.
 
 ## Order ownership
 

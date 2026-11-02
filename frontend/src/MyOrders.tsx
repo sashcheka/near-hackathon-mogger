@@ -49,7 +49,9 @@ export default function MyOrders({ token, products, revision }: Props) {
           <td>{order.quantity}</td>
           <td>{fromYocto(order.unit_price_yocto)} test NEAR</td>
           <td>{fromYocto(order.total_yocto)} test NEAR</td>
-          <td>{order.status === 'pending_payment' ? 'Awaiting payment' : order.status}</td>
+          <td><span className={`order-status ${order.status}`}>
+            {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
+          </span></td>
         </tr>)}</tbody>
       </table>
     </div>}

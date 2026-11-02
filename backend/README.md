@@ -109,7 +109,12 @@ HTTP tests cover price and recipient snapshots, ignored payment overrides, both 
 
 ## Transfer verification
 
-`POST /orders/{id}/verify-payment` checks an existing native NEAR Testnet transfer against the authenticated buyer's saved order. The sender comes from the session; the body contains only `transaction_hash`. This read-only endpoint leaves the order unpaid; transaction uniqueness and payment recording remain pending. See [API, RPC configuration, and errors](../docs/PAYMENTS.md).
+`POST /orders/{id}/verify-payment` verifies a finalized native NEAR Testnet transfer
+against the authenticated buyer's saved order. The body contains only
+`transaction_hash`. The outcome block must follow order creation. An atomic
+PostgreSQL transaction records the payment and marks the order `paid`, with unique
+order and network/hash keys. Repeating the accepted hash is idempotent, even with
+RPC unavailable. See [API, RPC configuration, and errors](../docs/PAYMENTS.md).
 
 ## AI purchase requests
 

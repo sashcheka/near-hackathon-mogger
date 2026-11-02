@@ -1,4 +1,4 @@
-# Testnet transfer verification
+# Testnet payment acceptance
 
 `POST /orders/{id}/verify-payment` requires `Authorization: Bearer <token>` from a
 verified wallet session and accepts exactly:
@@ -14,9 +14,28 @@ come from the saved order, never from request fields or the current catalog.
 Configure `MERCHANT_ACCOUNT_ID` before creating the order; the [root startup guide](../README.md)
 includes the launch command. Orders without a saved recipient return HTTP 409 `payment_not_configured`.
 
-The RPC client checks the reported chain ID, requests [`tx` with `wait_until: FINAL`](https://docs.near.org/api/rpc/transactions), and requires a successful result, the requested hash and signer, the saved recipient, and exactly one native `Transfer` action with the saved amount. It also verifies the matching transfer receipt's successful execution by the recipient. `NEAR_TESTNET_RPC_URL` overrides the default `https://rpc.testnet.near.org`; a reported non-Testnet chain is rejected. Each RPC call has a 15-second timeout, one attempt, and no redirects.
+The RPC client checks the reported chain ID, requests [`tx` with `wait_until: FINAL`](https://docs.near.org/api/rpc/transactions), and requires a successful result, the requested hash and signer, the saved recipient, and exactly one native `Transfer` action with the saved amount. It also verifies the matching transfer receipt's successful execution by the recipient. It fetches the transaction outcome's [block header](https://docs.near.org/api-reference/post-block), checks its hash, and reads `timestamp_nanosec` as an exact unsigned 64-bit integer string. `NEAR_TESTNET_RPC_URL` overrides the default Testnet endpoint. Each RPC call has a 15-second timeout, one attempt, and no redirects.
 
-HTTP 200 returns `verified: true`, `order_id`, `transaction_hash`, `sender_id`, `network_id`, and the unchanged `order_status`. This verifies chain facts for an authenticated order owner. It does not enforce that a transfer happened after order creation, reserve a transaction, prevent reuse across orders, or mark an order paid. Those checks and durable recording must be added before accepting payments.
+HTTP 200 returns `verified: true`, `order_id`, `transaction_hash`, `sender_id`,
+`network_id`, and `order_status: paid`. A PostgreSQL transaction locks the order,
+rechecks ownership and its price/recipient snapshot, inserts a payment and marks
+the order paid. RPC calls finish before acquiring this lock.
+
+The outcome block timestamp must be strictly later than the saved order creation
+time; comparisons use exact PostgreSQL numeric arithmetic. Keep the database host
+clock synchronized. An old transfer cannot pay a newer order. The payment stores
+its sender, receiver, amount, block hash/time and verification time. Unique keys
+allow one payment per order and one order per network/transaction hash, including
+under concurrent requests.
+
+Repeating the accepted hash for the same owned order returns the saved success
+without RPC access. Another hash for that paid order returns 409. Other errors
+leave an unpaid order unchanged and create no payment. After 202 or a timeout,
+retry verification with the same hash. This endpoint never broadcasts a transfer.
+
+Apply migrations before restarting the backend. The payments migration preserves
+unpaid orders; rollback is refused while paid orders remain. Wallet transfer UI and
+a real end-to-end Testnet payment are the next step.
 
 | HTTP | Error |
 | --- | --- |
@@ -24,7 +43,7 @@ HTTP 200 returns `verified: true`, `order_id`, `transaction_hash`, `sender_id`, 
 | 400 | `invalid_request` |
 | 401 | `unauthorized` — missing, invalid, expired or revoked session |
 | 404 | `order_not_found`, `transaction_not_found` |
-| 409 | `payment_not_configured`, `transaction_mismatch`, `transaction_failed` |
+| 409 | `payment_not_configured`, `transaction_mismatch`, `transaction_failed`, `transaction_before_order`, `transaction_already_used`, `order_already_paid`, `order_changed` |
 | 502 | `invalid_rpc_response`, `rpc_wrong_network` |
 | 503 | `rpc_unavailable` |
 | 504 | `rpc_timeout` |
@@ -38,4 +57,8 @@ curl -i http://localhost:8080/orders/ORDER_UUID/verify-payment \
   -d '{"transaction_hash":"BASE58_TRANSACTION_HASH"}'
 ```
 
-HTTP tests use a mocked RPC endpoint and require no wallet, test tokens, Ollama, or live RPC access. They cover saved prices, exact large amounts, malformed/failed/pending transactions, receipt checks, network mismatch, transport errors, and unchanged order status. Test configuration removes environment overrides for the model, merchant, and RPC. C++ syntax checks have passed for the client, handler, and component registration; full build, HTTP tests, and real-transfer validation are pending.
+HTTP tests use a mocked RPC endpoint and require no wallet, test tokens, Ollama, or
+live RPC access. They cover exact amounts, finalized receipts, block identity/time,
+nanosecond boundaries, rejected responses, persistence, retries with RPC down,
+changed order snapshots and concurrent duplicate/reused payments. C++/Python
+syntax checks passed; full build, HTTP tests and real-transfer validation are pending.

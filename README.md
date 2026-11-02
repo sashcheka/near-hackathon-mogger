@@ -98,7 +98,12 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
 
 Create a new order afterward. `GET /orders/{id}` must show the merchant in `payment.receiver_id`, network `testnet`, and the saved total in `payment.amount_yocto`. Older orders keep their original recipient, including `null`.
 
-`POST /orders/{id}/verify-payment` checks an existing native transfer through Testnet RPC for the authenticated order owner; see [request and error details](docs/PAYMENTS.md). This is a read-only check and leaves the order unpaid. Durable payment recording and payment replay protection are the next step. Build and HTTP test execution for the updated flow are pending.
+`POST /orders/{id}/verify-payment` checks an existing finalized Testnet transfer,
+requires it to follow order creation, and atomically records the payment and marks
+the owned order `paid`. A transaction cannot pay multiple orders; retrying the same
+accepted payment returns its saved result. **Orders** shows `Paid` after refresh.
+See [API and errors](docs/PAYMENTS.md). Apply migrations before restarting. Full
+build/tests and a real Testnet payment remain pending; the wallet **Pay** button is next.
 
 ## Stage 1
 
@@ -126,4 +131,8 @@ The backend derives prices from its catalog and the merchant recipient from serv
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
-The backend exposes catalog, order creation/retrieval, AI selection, and read-only transfer verification. Orders save the validated price, configured merchant recipient, and Testnet network. Order retrieval passed a reported standalone check. The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three reported runs. The [purchase screen](frontend/README.md) and Testnet wallet connection passed reported browser checks. Durable payments remain pending.
+The backend exposes catalog, owned orders, AI selection and durable payment
+acceptance. Orders save the validated price, configured merchant and Testnet network.
+The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three
+reported runs. The [purchase screen](frontend/README.md) and wallet connection passed
+earlier browser checks. Updated payment tests and real-transfer validation are pending.
