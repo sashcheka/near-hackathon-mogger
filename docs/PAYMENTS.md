@@ -34,8 +34,39 @@ leave an unpaid order unchanged and create no payment. After 202 or a timeout,
 retry verification with the same hash. This endpoint never broadcasts a transfer.
 
 Apply migrations before restarting the backend. The payments migration preserves
-unpaid orders; rollback is refused while paid orders remain. Wallet transfer UI and
-a real end-to-end Testnet payment are the next step.
+unpaid orders; rollback is refused while paid orders remain. The browser transfer
+flow is implemented; a real end-to-end Testnet payment still needs manual validation.
+
+## Browser payment flow
+
+**Pay** is available on new orders and through **Orders → Review & pay**. The UI
+shows the saved merchant and amount before requesting a transfer with
+[NEAR Connect](https://docs.near.org/web3-apps/tutorials/wallet-login). The backend
+order is fetched again; changed reviewed details block sending. Only one native
+`Transfer` action is requested, with an exact decimal yoctoNEAR string and explicit
+Testnet/signer parameters. The wallet holds the keys and asks the user to confirm.
+
+Before opening the wallet, a recovery marker is written to `localStorage`, scoped
+by Testnet/account/order. The returned transaction hash is saved before calling
+verification. Same-origin Web Locks coordinate tabs; an unavailable lock or
+disabled storage prevents starting a transfer. Use localhost or HTTPS.
+
+After 202, network errors or reload, **Check payment** uses the saved hash and never
+opens another transfer request. A backend-confirmed `paid` result is reloaded before
+clearing recovery data. Expired sessions require ownership verification again;
+recovery survives logout and is separate from the session token.
+
+Explicitly reported wallet cancellation clears an unsent marker. Closing a popup or
+losing the result is ambiguous: Pay stays blocked. The user can supply the hash from
+wallet history. **Allow a new payment** only clears a hashless marker after the user
+confirms no transfer was sent and no confirmation is open; it sends no funds.
+A saved hash cannot be reset this way. Known failed/mismatched transfers remain
+available for checking and require reconciliation before another payment for that order.
+
+Recovery is local to this browser/origin; it does not coordinate separate devices
+or survive clearing browser data. Backend uniqueness prevents accepting one hash
+twice, but cannot undo two separately confirmed on-chain transfers. Do not start
+another payment while a previous wallet result is unresolved.
 
 | HTTP | Error |
 | --- | --- |

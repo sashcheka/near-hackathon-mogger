@@ -37,7 +37,7 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
   ./build/community_treasury_backend --config configs/static_config.yaml
 ```
 
-For an unchanged, already-built backend, run only the environment assignments and executable from `/app/backend`. `MERCHANT_ACCOUNT_ID` is optional for now: unset means retrieved orders have `payment: null`.
+For an unchanged, already-built backend, run only the environment assignments and executable from `/app/backend`. Payable orders require `MERCHANT_ACCOUNT_ID`; unset means new orders have `payment: null`.
 
 **5. Another dev container terminal — frontend.** Leave Vite running:
 
@@ -100,9 +100,21 @@ Create a new order afterward. `GET /orders/{id}` must show the merchant in `paym
 `POST /orders/{id}/verify-payment` checks an existing finalized Testnet transfer,
 requires it to follow order creation, and atomically records the payment and marks
 the owned order `paid`. A transaction cannot pay multiple orders; retrying the same
-accepted payment returns its saved result. **Orders** shows `Paid` after refresh.
-See [API and errors](docs/PAYMENTS.md). Apply migrations before restarting. Full
-build/tests and a real Testnet payment remain pending; the wallet **Pay** button is next.
+accepted payment returns its saved result. **Pay** requests one wallet-confirmed
+transfer; **Check payment** retries verification without sending again. See
+[payment flow and recovery](docs/PAYMENTS.md). The frontend requires a current
+browser with local storage and Web Locks on localhost or HTTPS. Frontend-only
+payment UI changes need no backend rebuild or additional migration.
+
+To check a real Testnet purchase:
+
+1. Connect and verify the buyer wallet; fund it with [test NEAR](https://near-faucet.io/) for the order plus its network fee.
+2. Create an order, or open **Orders → Review & pay**. Review its product, saved amount and merchant.
+3. Click **Pay** and confirm the Testnet transfer in the wallet. Wait for **Paid**, or use **Check payment** with the saved hash.
+4. Reload and open **Orders**: the result must still be **Paid**. Check the merchant wallet's received transfer.
+
+TypeScript/static checks passed. Full frontend tests/build, wallet cancellation
+checks and the first real transfer still require developer validation.
 
 ## Stage 1
 

@@ -136,7 +136,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new PaymentNotSent('Could not check the wallet account. Reconnect and try again.');
       }
       if (generation.current !== version || session.expires_at <= Date.now() ||
-        accounts[0]?.accountId !== session.account_id)
+        !Array.isArray(accounts) || accounts[0]?.accountId !== session.account_id)
         throw new PaymentNotSent('The wallet account or session changed. Verify ownership again.');
       const result = await connection.wallet.signAndSendTransaction(
         transferRequest(payment, session.account_id));
