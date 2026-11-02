@@ -5,7 +5,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
 #include "../clients/near_rpc_client.hpp"
-#include "../services/orders_service.hpp"
+#include "../services/payments_service.hpp"
 
 namespace community_treasury {
 
@@ -23,8 +23,8 @@ class PaymentVerificationHandler final
 
  private:
   const userver::storages::postgres::ClusterPtr cluster_;
-  const OrdersService orders_;
   const NearRpcClient rpc_;
+  const PaymentsService payments_;
 };
 
 }  // namespace community_treasury

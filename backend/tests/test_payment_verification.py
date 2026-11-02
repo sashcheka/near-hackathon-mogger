@@ -83,17 +83,32 @@ def assert_unpaid(pgsql, state):
         assert cursor.fetchone() == (0,)
 
 
-async def test_verifies_saved_amount_without_recording_payment(service_client, pgsql, near_rpc):
+def assert_paid(pgsql, state, amount=AMOUNT):
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute(
+            'SELECT o.status, p.network_id, p.transaction_hash, p.sender_id, '
+            'p.receiver_id, p.amount_yocto::text, p.block_hash, p.block_timestamp_ns::text '
+            'FROM orders o JOIN payments p ON p.order_id = o.id WHERE o.id = %s',
+            (state['order_id'],))
+        assert cursor.fetchone() == ('paid', 'testnet', HASH, 'buyer.testnet',
+            'merchant.testnet', amount, BLOCK_HASH, state['block']['header']['timestamp_nanosec'])
+
+
+async def test_records_saved_amount_and_marks_paid(service_client, pgsql, near_rpc):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute("UPDATE products SET price_yocto = 1 WHERE id = 'toilet-paper'")
     response = await verify(service_client, near_rpc)
     assert response.status == 200
     assert response.json() == {
         'verified': True, 'order_id': near_rpc['order_id'], 'transaction_hash': HASH,
-        'sender_id': 'buyer.testnet', 'network_id': 'testnet', 'order_status': 'pending_payment',
+        'sender_id': 'buyer.testnet', 'network_id': 'testnet', 'order_status': 'paid',
     }
     assert near_rpc['calls'] == ['status', 'tx', 'block']
-    assert_unpaid(pgsql, near_rpc)
+    assert_paid(pgsql, near_rpc)
+    details = await service_client.get(f"/orders/{near_rpc['order_id']}", bearer=near_rpc['token'])
+    history = await service_client.get('/orders', bearer=near_rpc['token'])
+    assert details.json()['status'] == 'paid'
+    assert history.json()['orders'][0]['status'] == 'paid'
 
 
 @pytest.mark.parametrize(('field', 'value', 'status', 'error'), [
@@ -217,7 +232,7 @@ async def test_large_amount_is_compared_exactly(service_client, pgsql, near_rpc)
     near_rpc['result']['transaction']['actions'][0]['Transfer']['deposit'] = amount
     response = await verify(service_client, near_rpc)
     assert response.status == 200
-    assert_unpaid(pgsql, near_rpc)
+    assert_paid(pgsql, near_rpc, amount)
 
 
 @pytest.mark.parametrize('timestamp', [None, 123, '', '0', '-1', '+1', '01', '1e9',

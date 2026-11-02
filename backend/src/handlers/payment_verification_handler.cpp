@@ -25,6 +25,13 @@ const std::map<Code, std::pair<Status, std::string_view>> kErrors{
     {Code::kFailed, {Status::kConflict, "transaction_failed"}},
     {Code::kMismatch, {Status::kConflict, "transaction_mismatch"}},
 };
+const std::map<PaymentErrorCode, std::string_view> kPaymentErrors{
+    {PaymentErrorCode::kAlreadyUsed, "transaction_already_used"},
+    {PaymentErrorCode::kOrderAlreadyPaid, "order_already_paid"},
+    {PaymentErrorCode::kBeforeOrder, "transaction_before_order"},
+    {PaymentErrorCode::kOrderChanged, "order_changed"},
+    {PaymentErrorCode::kNotConfigured, "payment_not_configured"},
+};
 }  // namespace
 
 PaymentVerificationHandler::PaymentVerificationHandler(
@@ -34,10 +41,10 @@ PaymentVerificationHandler::PaymentVerificationHandler(
       cluster_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
               .GetCluster()),
-      orders_(cluster_),
       rpc_(context.FindComponent<userver::components::HttpClient>()
                .GetHttpClient(),
-           config["rpc-url"].As<std::string>()) {}
+           config["rpc-url"].As<std::string>()),
+      payments_(cluster_, rpc_) {}
 
 std::string PaymentVerificationHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
@@ -48,13 +55,8 @@ std::string PaymentVerificationHandler::HandleRequestThrow(
     if (!body.IsObject() || body.GetSize() != 1 ||
         !body["transaction_hash"].IsString())
       throw OrderError(OrderErrorCode::kInvalidRequest);
-    const auto order = orders_.Get(request.GetPathArg("order_id"), sender);
-    if (!order.receiver_id)
-      return JsonResponse(request, Status::kConflict,
-                          json::MakeObject("error", "payment_not_configured"));
-    if (order.network_id != "testnet") throw NearRpcError(Code::kWrongNetwork);
     const auto hash = body["transaction_hash"].As<std::string>();
-    rpc_.VerifyTransfer(hash, sender, *order.receiver_id, order.total_yocto);
+    const auto order = payments_.Verify(request.GetPathArg("order_id"), sender, hash);
     return JsonResponse(request, Status::kOk,
                         json::MakeObject("verified", true, "order_id", order.id,
                                          "transaction_hash", hash, "sender_id",
@@ -66,6 +68,9 @@ std::string PaymentVerificationHandler::HandleRequestThrow(
     return OrderErrorResponse(request, OrderErrorCode::kInvalidRequest);
   } catch (const OrderError& error) {
     return OrderErrorResponse(request, error.code);
+  } catch (const PaymentError& error) {
+    return JsonResponse(request, Status::kConflict,
+                        json::MakeObject("error", kPaymentErrors.at(error.code)));
   } catch (const NearRpcError& error) {
     const auto& [status, code] = kErrors.at(error.code);
     return JsonResponse(request, status, json::MakeObject("error", code));
@@ -76,7 +81,7 @@ userver::yaml_config::Schema
 PaymentVerificationHandler::GetStaticConfigSchema() {
   return userver::yaml_config::MergeSchemas<HttpHandlerBase>(R"(
 type: object
-description: Read-only verification of an order's native NEAR Testnet transfer
+description: Verify and atomically record an order's native NEAR Testnet transfer
 additionalProperties: false
 properties:
     rpc-url:

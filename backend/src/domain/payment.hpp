@@ -10,7 +10,13 @@ struct VerifiedTransfer {
   std::string block_timestamp_ns;
 };
 
-enum class PaymentErrorCode { kAlreadyUsed, kOrderAlreadyPaid, kBeforeOrder, kOrderChanged };
+enum class PaymentErrorCode {
+  kAlreadyUsed,
+  kOrderAlreadyPaid,
+  kBeforeOrder,
+  kOrderChanged,
+  kNotConfigured
+};
 
 class PaymentError final : public std::runtime_error {
  public:

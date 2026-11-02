@@ -25,6 +25,7 @@ add_executable(community_treasury_backend
     src/handlers/payment_verification_handler.cpp
     src/components/merchant_settings.cpp
     src/services/orders_service.cpp
+    src/services/payments_service.cpp
     src/repositories/orders_repository.cpp
     src/repositories/payments_repository.cpp
     src/repositories/products_repository.cpp
