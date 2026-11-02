@@ -19,6 +19,7 @@ type WalletState = {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   sendTransfer: (payment: PaymentDetails) => Promise<string>;
+  invalidateSession: () => void;
 };
 const WalletContext = createContext<WalletState | null>(null);
 
@@ -190,9 +191,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function invalidateSession() {
+    ++generation.current;
+    clearSession();
+    setSession(null);
+    setError('Your session is no longer valid. Verify ownership again to continue.');
+  }
+
   return <WalletContext.Provider value={{
     accountId: connection?.accounts[0]?.accountId ?? '',
-    ready, busy, error, session, authenticate, connect, disconnect, sendTransfer,
+    ready, busy, error, session, authenticate, connect, disconnect, sendTransfer, invalidateSession,
   }}>{children}</WalletContext.Provider>;
 }
 

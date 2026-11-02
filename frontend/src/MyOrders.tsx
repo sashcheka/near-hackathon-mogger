@@ -3,9 +3,9 @@ import { getOrders } from './api';
 import type { Order, Product } from './api';
 import { fromYocto } from './amounts';
 
-type Props = { token: string; products: Product[]; revision: number };
+type Props = { token: string; products: Product[]; revision: number; onReview: (order: Order) => void };
 
-export default function MyOrders({ token, products, revision }: Props) {
+export default function MyOrders({ token, products, revision, onReview }: Props) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +42,7 @@ export default function MyOrders({ token, products, revision }: Props) {
         <thead><tr>
           <th scope="col">Product / order</th><th scope="col">Quantity</th>
           <th scope="col">Unit price</th><th scope="col">Total</th><th scope="col">Status</th>
+          <th scope="col">Action</th>
         </tr></thead>
         <tbody>{orders.map((order) => <tr key={order.id}>
           <td>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}
@@ -52,6 +53,9 @@ export default function MyOrders({ token, products, revision }: Props) {
           <td><span className={`order-status ${order.status}`}>
             {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
           </span></td>
+          <td><button className="secondary-button" type="button" onClick={() => onReview(order)}>
+            {order.status === 'paid' ? 'View' : 'Review & pay'}
+          </button></td>
         </tr>)}</tbody>
       </table>
     </div>}

@@ -42,6 +42,10 @@ main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-nu
 .orders-table small { max-width: 180px; }
 .order-status { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eef1ed; color: #52675f; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
 .order-status.paid { background: #e0eee6; color: #17664d; }
+.payment-panel { margin-top: 20px; border-top: 1px solid #d8e1d9; padding-top: 8px; }
+.payment-panel button { margin: 8px 8px 0 0; }
+main .payment-reset { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; margin: 16px 0 0; }
+main .payment-reset input { width: auto; margin-top: 5px; padding: 0; }
 @media (max-width: 420px) {
   main { padding: 24px 12px; }
   main form, main article { padding: 16px; }

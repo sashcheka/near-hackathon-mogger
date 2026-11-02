@@ -6,6 +6,7 @@ import { fromYocto, toYocto } from './amounts';
 import WalletPanel from './WalletPanel';
 import { useWallet } from './WalletProvider';
 import MyOrders from './MyOrders';
+import PaymentPanel from './PaymentPanel';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
@@ -99,7 +100,13 @@ export default function App() {
       <section id="workspace">
       {view === 'orders' ? <>
         {session ? <MyOrders key={session.token} token={session.token}
-          products={products} revision={ordersRevision} />
+          products={products} revision={ordersRevision} onReview={(saved) => {
+            ++requestVersion.current;
+            setBusy(false);
+            setOrder(saved);
+            setError('');
+            setView('purchase');
+          }} />
           : <p>Connect your wallet and verify ownership to see your orders.</p>}
       </> : <>
       {!session && <p>Connect your wallet and verify ownership to create an order.</p>}
@@ -140,6 +147,11 @@ export default function App() {
           <p>{order.status === 'paid' ? 'Payment confirmed on NEAR Testnet.'
             : 'Check that the product and quantity match your request before paying.'}</p>
           <small>Order: {order.id}</small>
+          {session && <PaymentPanel key={`${session.token}:${order.id}`} orderId={order.id}
+            accountId={session.account_id} token={session.token} onPaid={(paid) => {
+              setOrder(paid);
+              setOrdersRevision((revision) => revision + 1);
+            }} />}
         </article>}
       </section>
       </>}
