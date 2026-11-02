@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import subprocess
@@ -7,6 +8,18 @@ import pytest
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = ['pytest_userver.plugins.postgresql']
+
+
+@pytest.fixture
+def buyer_token(pgsql):
+    # Order tests use a database session; signature verification has its own tests.
+    token = 'B' * 44
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute(
+            'INSERT INTO auth_sessions (token_hash, account_id) VALUES (%s, %s)',
+            (hashlib.sha256(token.encode()).hexdigest(), 'buyer.testnet'),
+        )
+    return token
 
 
 @pytest.fixture(scope='session')

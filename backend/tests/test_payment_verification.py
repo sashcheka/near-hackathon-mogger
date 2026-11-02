@@ -8,7 +8,7 @@ import pytest
 HASH = 'A' * 44
 RECEIPT_ID = '3' * 44
 AMOUNT = '2000000000000000000000000'
-REQUEST = {'transaction_hash': HASH, 'sender_id': 'buyer.testnet'}
+REQUEST = {'transaction_hash': HASH}
 TRANSACTION = {
     'hash': HASH, 'signer_id': 'buyer.testnet', 'receiver_id': 'merchant.testnet',
     'actions': [{'Transfer': {'deposit': AMOUNT}}],
@@ -20,15 +20,15 @@ RECEIPT = {'id': RECEIPT_ID, 'outcome': {
 
 
 @pytest.fixture
-def near_rpc(mockserver, pgsql, seed_catalog):
+def near_rpc(mockserver, pgsql, seed_catalog, buyer_token):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute(
             'INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, '
-            'budget_yocto, receiver_id) VALUES (%s, 1, %s, %s, %s, %s) RETURNING id::text',
+            "budget_yocto, receiver_id, buyer_id) VALUES (%s, 1, %s, %s, %s, %s, 'buyer.testnet') RETURNING id::text",
             ('toilet-paper', AMOUNT, AMOUNT, AMOUNT, 'merchant.testnet'),
         )
         order_id = cursor.fetchone()[0]
-    state = {'order_id': order_id, 'calls': [], 'chain_id': 'testnet',
+    state = {'order_id': order_id, 'token': buyer_token, 'calls': [], 'chain_id': 'testnet',
              'http_status': 200, 'delay': 0, 'result': copy.deepcopy({
                  'transaction': TRANSACTION, 'final_execution_status': 'FINAL',
                  'status': {'SuccessValue': ''}, 'transaction_outcome': OUTCOME,
@@ -60,6 +60,7 @@ def near_rpc(mockserver, pgsql, seed_catalog):
 async def verify(service_client, state, **changes):
     return await service_client.post(
         f"/orders/{state['order_id']}/verify-payment", json={**REQUEST, **changes},
+        bearer=state['token'],
     )
 
 
@@ -159,6 +160,7 @@ async def test_wrong_network_and_transport_errors(service_client, near_rpc, chan
     {'transaction_hash': 'A' * 45}, {'transaction_hash': 1},
     {'sender_id': 'Bad.testnet'}, {'sender_id': 'system'},
     {'sender_id': ''}, {'sender_id': 'a' * 65}, {'receiver_id': 'other.testnet'},
+    {'sender_id': 'buyer.testnet'},
     {'amount_yocto': '1'},
 ])
 async def test_invalid_request_does_not_call_rpc(service_client, near_rpc, changes):
@@ -172,6 +174,7 @@ async def test_invalid_request_does_not_call_rpc(service_client, near_rpc, chang
 async def test_malformed_request_does_not_call_rpc(service_client, near_rpc, body):
     response = await service_client.post(
         f"/orders/{near_rpc['order_id']}/verify-payment", data=body,
+        bearer=near_rpc['token'],
     )
     assert response.status == 400
     assert response.json() == {'error': 'invalid_request'}
@@ -179,7 +182,8 @@ async def test_malformed_request_does_not_call_rpc(service_client, near_rpc, bod
 
 
 async def test_missing_or_unconfigured_order_does_not_call_rpc(service_client, pgsql, near_rpc):
-    missing = await service_client.post(f'/orders/{uuid.uuid4()}/verify-payment', json=REQUEST)
+    missing = await service_client.post(f'/orders/{uuid.uuid4()}/verify-payment', json=REQUEST,
+                                        bearer=near_rpc['token'])
     assert missing.status == 404
     assert missing.json() == {'error': 'order_not_found'}
     with pgsql['treasury'].cursor() as cursor:

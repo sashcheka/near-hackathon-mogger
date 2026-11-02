@@ -20,6 +20,7 @@ inline std::string SessionHash(
 inline std::string AuthenticatedAccount(
     const userver::server::http::HttpRequest& request,
     const userver::storages::postgres::ClusterPtr& cluster) {
+  request.GetHttpResponse().SetHeader(std::string_view{"Cache-Control"}, "no-store");
   const auto account =
       auth_repository::FindSession(cluster, SessionHash(request));
   if (!account) throw AuthError(AuthErrorCode::kUnauthorized);

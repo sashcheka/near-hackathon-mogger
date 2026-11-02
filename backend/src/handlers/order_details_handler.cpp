@@ -4,6 +4,7 @@
 #include <userver/storages/postgres/component.hpp>
 
 #include "order_response.hpp"
+#include "authentication.hpp"
 
 namespace community_treasury {
 
@@ -11,15 +12,17 @@ OrderDetailsHandler::OrderDetailsHandler(
     const userver::components::ComponentConfig& config,
     const userver::components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      service_(
+      cluster_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
-              .GetCluster()) {}
+              .GetCluster()),
+      service_(cluster_) {}
 
 std::string OrderDetailsHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
     userver::server::request::RequestContext&) const {
   try {
-    const auto order = service_.Get(request.GetPathArg("order_id"));
+    const auto buyer = AuthenticatedAccount(request, cluster_);
+    const auto order = service_.Get(request.GetPathArg("order_id"), buyer);
     userver::formats::json::ValueBuilder body(OrderJson(order));
     body["payment"] = nullptr;
     if (order.receiver_id) {
@@ -29,6 +32,8 @@ std::string OrderDetailsHandler::HandleRequestThrow(
     }
     return JsonResponse(request, userver::server::http::HttpStatus::kOk,
                         body.ExtractValue());
+  } catch (const AuthError& error) {
+    return AuthErrorResponse(request, error.code);
   } catch (const OrderError& error) {
     return OrderErrorResponse(request, error.code);
   }

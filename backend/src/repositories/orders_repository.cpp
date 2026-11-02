@@ -20,13 +20,13 @@ const pg::Query kInsertOrder{
     "INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, "
     "budget_yocto, receiver_id, buyer_id) VALUES ($1, $2, $3::text::numeric, "
     "$4::text::numeric, "
-    "$5::text::numeric, NULLIF($6, ''), NULLIF($7, '')) RETURNING id::text",
+    "$5::text::numeric, NULLIF($6, ''), $7) RETURNING id::text",
     pg::Query::NameLiteral{"insert_order"}};
 
 const pg::Query kFindOrder{
     "SELECT id::text, product_id, quantity, unit_price_yocto::text, "
     "total_yocto::text, budget_yocto::text, status, receiver_id, network_id, buyer_id "
-    "FROM orders WHERE id = $1::uuid",
+    "FROM orders WHERE id = $1::uuid AND buyer_id = $2",
     pg::Query::NameLiteral{"find_order"}};
 
 }  // namespace
@@ -57,9 +57,9 @@ Order Insert(pg::Transaction& transaction, const CreateOrderRequest& request,
 }
 
 std::optional<Order> Find(const pg::ClusterPtr& cluster,
-                          const std::string& id) {
+                          const std::string& id, const std::string& buyer_id) {
   const auto result =
-      cluster->Execute(pg::ClusterHostType::kMaster, kFindOrder, id);
+      cluster->Execute(pg::ClusterHostType::kMaster, kFindOrder, id, buyer_id);
   if (result.IsEmpty()) return std::nullopt;
   return result.AsSingleRow<Order>(pg::kRowTag);
 }

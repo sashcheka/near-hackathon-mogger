@@ -10,8 +10,8 @@ class OrdersService {
  public:
   explicit OrdersService(userver::storages::postgres::ClusterPtr cluster,
                          std::string receiver_id = {});
-  Order Create(const CreateOrderRequest& request) const;
-  Order Get(const std::string& id) const;
+  Order Create(const CreateOrderRequest& request, const std::string& buyer_id) const;
+  Order Get(const std::string& id, const std::string& buyer_id) const;
 
  private:
   const userver::storages::postgres::ClusterPtr cluster_;

@@ -19,6 +19,7 @@ class OrdersHandler final : public userver::server::handlers::HttpHandlerBase {
       userver::server::request::RequestContext&) const override;
 
  private:
+  const userver::storages::postgres::ClusterPtr cluster_;
   const OrdersService service_;
 };
 

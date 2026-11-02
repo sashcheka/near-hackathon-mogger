@@ -22,6 +22,7 @@ class PurchaseHandler final
   static userver::yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  const userver::storages::postgres::ClusterPtr cluster_;
   const OllamaClient model_;
   const PurchaseService service_;
 };

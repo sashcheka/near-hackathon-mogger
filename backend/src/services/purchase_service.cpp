@@ -16,7 +16,8 @@ PurchaseService::PurchaseService(
       orders_(cluster_, std::move(receiver_id)) {}
 
 Order PurchaseService::Create(const std::string& prompt,
-                              const std::string& budget) const {
+                              const std::string& budget,
+                              const std::string& buyer_id) const {
   if (prompt.empty() || prompt.size() > 2000 ||
       prompt.find_first_not_of(" \t\r\n") == std::string::npos)
     throw OrderError(OrderErrorCode::kInvalidRequest);
@@ -26,7 +27,7 @@ Order PurchaseService::Create(const std::string& prompt,
   const auto selection = model_.Select(prompt, products);
   LOG_INFO() << "Model selected product_id=" << selection.product_id
              << " quantity=" << selection.quantity;
-  return orders_.Create({selection.product_id, selection.quantity, budget});
+  return orders_.Create({selection.product_id, selection.quantity, budget}, buyer_id);
 }
 
 }  // namespace community_treasury

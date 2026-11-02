@@ -22,6 +22,7 @@ class PaymentVerificationHandler final
       userver::server::request::RequestContext&) const override;
 
  private:
+  const userver::storages::postgres::ClusterPtr cluster_;
   const OrdersService orders_;
   const NearRpcClient rpc_;
 };

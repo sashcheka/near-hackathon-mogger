@@ -6,6 +6,7 @@
 #include <userver/storages/postgres/transaction.hpp>
 #include <utility>
 
+#include "../domain/near_account.hpp"
 #include "../repositories/orders_repository.hpp"
 
 namespace community_treasury {
@@ -26,8 +27,10 @@ OrdersService::OrdersService(userver::storages::postgres::ClusterPtr cluster,
                              std::string receiver_id)
     : cluster_(std::move(cluster)), receiver_id_(std::move(receiver_id)) {}
 
-Order OrdersService::Create(const CreateOrderRequest& request) const {
-  if (request.product_id.empty() || request.product_id.size() > 128 ||
+Order OrdersService::Create(const CreateOrderRequest& request,
+                            const std::string& buyer_id) const {
+  if (!IsValidNearAccountId(buyer_id) || request.product_id.empty() ||
+      request.product_id.size() > 128 ||
       request.quantity < 1 || request.quantity > 1000) {
     throw OrderError(OrderErrorCode::kInvalidRequest);
   }
@@ -44,19 +47,19 @@ Order OrdersService::Create(const CreateOrderRequest& request) const {
   if (total > budget) throw OrderError(OrderErrorCode::kBudgetExceeded);
 
   auto order = orders_repository::Insert(transaction, request, *price,
-                                         total.str(), receiver_id_);
+                                         total.str(), receiver_id_, buyer_id);
   transaction.Commit();
   return order;
 }
 
-Order OrdersService::Get(const std::string& id) const {
+Order OrdersService::Get(const std::string& id, const std::string& buyer_id) const {
   if (id.size() != 36) throw OrderError(OrderErrorCode::kInvalidRequest);
   try {
     (void)boost::uuids::string_generator{}(id);
   } catch (const std::runtime_error&) {
     throw OrderError(OrderErrorCode::kInvalidRequest);
   }
-  auto order = orders_repository::Find(cluster_, id);
+  auto order = orders_repository::Find(cluster_, id, buyer_id);
   if (!order) throw OrderError(OrderErrorCode::kOrderNotFound);
   return *order;
 }

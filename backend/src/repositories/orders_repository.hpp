@@ -15,10 +15,10 @@ std::optional<std::string> FindPriceForShare(
 Order Insert(userver::storages::postgres::Transaction& transaction,
              const CreateOrderRequest& request, const std::string& unit_price,
              const std::string& total, const std::string& receiver_id,
-             const std::string& buyer_id = {});
+             const std::string& buyer_id);
 
 std::optional<Order> Find(
     const userver::storages::postgres::ClusterPtr& cluster,
-    const std::string& id);
+    const std::string& id, const std::string& buyer_id);
 
 }  // namespace community_treasury::orders_repository

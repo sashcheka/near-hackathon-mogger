@@ -35,20 +35,20 @@ def ollama(mockserver, pgsql, seed_catalog):
     return state
 
 
-async def test_model_creates_unpaid_order(service_client, pgsql, ollama):
-    response = await service_client.post('/purchase-requests', json=REQUEST)
+async def test_model_creates_unpaid_order(service_client, pgsql, ollama, buyer_token):
+    response = await service_client.post('/purchase-requests', json=REQUEST, bearer=buyer_token)
     assert response.status == 201
     order = response.json()
     assert order['product_id'] == 'toilet-paper'
     assert order['quantity'] == 1
     assert order['total_yocto'] == '2000000000000000000000000'
     assert order['status'] == 'pending_payment'
-    details = await service_client.get(f"/orders/{order['id']}")
+    details = await service_client.get(f"/orders/{order['id']}", bearer=buyer_token)
     assert details.status == 200
     assert details.json()['payment']['receiver_id'] == 'merchant.testnet'
     with pgsql['treasury'].cursor() as cursor:
-        cursor.execute('SELECT id::text FROM orders')
-        assert cursor.fetchall() == [(order['id'],)]
+        cursor.execute('SELECT id::text, buyer_id FROM orders')
+        assert cursor.fetchall() == [(order['id'], 'buyer.testnet')]
 
 
 @pytest.mark.parametrize(('changes', 'status', 'error'), [
@@ -62,9 +62,9 @@ async def test_model_creates_unpaid_order(service_client, pgsql, ollama):
     ({'status': 500}, 503, 'model_unavailable'),
     ({'delay': 1}, 504, 'model_timeout'),
 ])
-async def test_model_failure_creates_no_order(service_client, pgsql, ollama, changes, status, error):
+async def test_model_failure_creates_no_order(service_client, pgsql, ollama, buyer_token, changes, status, error):
     ollama.update(changes)
-    response = await service_client.post('/purchase-requests', json=REQUEST)
+    response = await service_client.post('/purchase-requests', json=REQUEST, bearer=buyer_token)
     assert response.status == status
     assert response.json() == {'error': error}
     assert ollama['calls'] == 1
@@ -78,17 +78,17 @@ async def test_model_failure_creates_no_order(service_client, pgsql, ollama, cha
     {'budget_yocto': '0'}, {'budget_yocto': '1e30'}, {'budget_yocto': 3},
     {'product_id': 'toilet-paper'},
 ])
-async def test_invalid_purchase_does_not_call_model(service_client, ollama, changes):
-    response = await service_client.post('/purchase-requests', json={**REQUEST, **changes})
+async def test_invalid_purchase_does_not_call_model(service_client, ollama, buyer_token, changes):
+    response = await service_client.post('/purchase-requests', json={**REQUEST, **changes}, bearer=buyer_token)
     assert response.status == 400
     assert response.json() == {'error': 'invalid_request'}
     assert ollama['calls'] == 0
 
 
-async def test_empty_catalog_does_not_call_model(service_client, pgsql, ollama):
+async def test_empty_catalog_does_not_call_model(service_client, pgsql, ollama, buyer_token):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute('DELETE FROM products')
-    response = await service_client.post('/purchase-requests', json=REQUEST)
+    response = await service_client.post('/purchase-requests', json=REQUEST, bearer=buyer_token)
     assert response.status == 404
     assert response.json() == {'error': 'no_matching_product'}
     assert ollama['calls'] == 0

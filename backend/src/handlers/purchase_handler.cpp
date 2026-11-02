@@ -6,6 +6,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include "../components/merchant_settings.hpp"
+#include "authentication.hpp"
 #include "order_response.hpp"
 
 namespace community_treasury {
@@ -16,26 +17,29 @@ PurchaseHandler::PurchaseHandler(
     const userver::components::ComponentConfig& config,
     const userver::components::ComponentContext& context)
     : HttpHandlerBase(config, context),
+      cluster_(context.FindComponent<userver::components::Postgres>("postgres-db")
+                   .GetCluster()),
       model_(context.FindComponent<userver::components::HttpClient>()
                  .GetHttpClient(),
              config["ollama-url"].As<std::string>(),
              config["ollama-model"].As<std::string>()),
-      service_(
-          context.FindComponent<userver::components::Postgres>("postgres-db")
-              .GetCluster(),
+      service_(cluster_,
           model_, context.FindComponent<MerchantSettings>().AccountId()) {}
 
 std::string PurchaseHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
     userver::server::request::RequestContext&) const {
   try {
+    const auto buyer = AuthenticatedAccount(request, cluster_);
     const auto value = json::FromString(request.RequestBody());
     if (!value.IsObject() || value.GetSize() != 2 ||
         !value["prompt"].IsString() || !value["budget_yocto"].IsString())
       throw OrderError(OrderErrorCode::kInvalidRequest);
     return CreatedOrderResponse(
         request, service_.Create(value["prompt"].As<std::string>(),
-                                 value["budget_yocto"].As<std::string>()));
+                                 value["budget_yocto"].As<std::string>(), buyer));
+  } catch (const AuthError& error) {
+    return AuthErrorResponse(request, error.code);
   } catch (const json::Exception&) {
     return OrderErrorResponse(request, OrderErrorCode::kInvalidRequest);
   } catch (const OrderError& error) {

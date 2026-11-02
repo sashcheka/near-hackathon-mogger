@@ -8,8 +8,8 @@ AMOUNT = '4000000000000000000000000'
 REQUEST = {'product_id': 'toilet-paper', 'quantity': 2, 'budget_yocto': AMOUNT}
 
 
-async def test_details_use_saved_price_and_payment_settings(service_client, pgsql):
-    response = await service_client.post('/orders', json=REQUEST)
+async def test_details_use_saved_price_and_payment_settings(service_client, pgsql, buyer_token):
+    response = await service_client.post('/orders', json=REQUEST, bearer=buyer_token)
     assert response.status == 201
     order = response.json()
     with pgsql['treasury'].cursor() as cursor:
@@ -20,6 +20,7 @@ async def test_details_use_saved_price_and_payment_settings(service_client, pgsq
 
     response = await service_client.get(
         f"/orders/{order['id']}?amount_yocto=1&receiver_id=attacker.testnet&network_id=mainnet",
+        bearer=buyer_token,
     )
     assert response.status == 200
     assert response.json() == {**order, 'payment': {
@@ -29,15 +30,15 @@ async def test_details_use_saved_price_and_payment_settings(service_client, pgsq
 
 
 @pytest.mark.parametrize('receiver', [None, 'previous-merchant.testnet'])
-async def test_details_do_not_replace_missing_or_old_recipient(service_client, pgsql, receiver):
+async def test_details_do_not_replace_missing_or_old_recipient(service_client, pgsql, buyer_token, receiver):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute(
             'INSERT INTO orders (product_id, quantity, unit_price_yocto, total_yocto, '
-            'budget_yocto, receiver_id) VALUES (%s, 1, 1, 1, 1, %s) RETURNING id::text',
+            "budget_yocto, receiver_id, buyer_id) VALUES (%s, 1, 1, 1, 1, %s, 'buyer.testnet') RETURNING id::text",
             ('toilet-paper', receiver),
         )
         order_id = cursor.fetchone()[0]
-    response = await service_client.get(f'/orders/{order_id}')
+    response = await service_client.get(f'/orders/{order_id}', bearer=buyer_token)
     assert response.status == 200
     payment = response.json()['payment']
     if receiver is None:
@@ -48,14 +49,14 @@ async def test_details_do_not_replace_missing_or_old_recipient(service_client, p
 
 
 @pytest.mark.parametrize('order_id', ['invalid', '00000000-0000-0000-0000-00000000000z'])
-async def test_invalid_order_id(service_client, order_id):
-    response = await service_client.get(f'/orders/{order_id}')
+async def test_invalid_order_id(service_client, buyer_token, order_id):
+    response = await service_client.get(f'/orders/{order_id}', bearer=buyer_token)
     assert response.status == 400
     assert response.json() == {'error': 'invalid_request'}
 
 
-async def test_missing_order(service_client):
-    response = await service_client.get(f'/orders/{uuid.uuid4()}')
+async def test_missing_order(service_client, buyer_token):
+    response = await service_client.get(f'/orders/{uuid.uuid4()}', bearer=buyer_token)
     assert response.status == 404
     assert response.json() == {'error': 'order_not_found'}
 

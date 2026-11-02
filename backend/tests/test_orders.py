@@ -9,8 +9,8 @@ TOTAL = '4000000000000000000000000'
 REQUEST = {'product_id': 'toilet-paper', 'quantity': 2, 'budget_yocto': TOTAL}
 
 
-async def test_create_order_and_preserve_price_snapshot(service_client, pgsql):
-    response = await service_client.post('/orders', json=REQUEST)
+async def test_create_order_and_preserve_price_snapshot(service_client, pgsql, buyer_token):
+    response = await service_client.post('/orders', json=REQUEST, bearer=buyer_token)
     assert response.status == 201
     order = response.json()
     assert str(uuid.UUID(order['id'])) == order['id']
@@ -25,13 +25,13 @@ async def test_create_order_and_preserve_price_snapshot(service_client, pgsql):
         )
         cursor.execute(
             'SELECT product_id, quantity, unit_price_yocto::text, '
-            'total_yocto::text, budget_yocto::text, status FROM orders WHERE id = %s',
+            'total_yocto::text, budget_yocto::text, status, buyer_id FROM orders WHERE id = %s',
             (order['id'],),
         )
         assert cursor.fetchone() == (
-            'toilet-paper', 2, PRICE, TOTAL, TOTAL, 'pending_payment',
+            'toilet-paper', 2, PRICE, TOTAL, TOTAL, 'pending_payment', 'buyer.testnet',
         )
-    response = await service_client.post('/orders', json=REQUEST)
+    response = await service_client.post('/orders', json=REQUEST, bearer=buyer_token)
     assert response.status == 201
     assert response.json()['unit_price_yocto'] == '1'
     assert response.json()['total_yocto'] == '2'
@@ -54,8 +54,8 @@ async def test_create_order_and_preserve_price_snapshot(service_client, pgsql):
     ({'budget_yocto': '9' * 40}, 400, 'invalid_request'),
     ({'unit_price_yocto': '1'}, 400, 'invalid_request'),
 ])
-async def test_rejected_order_is_not_saved(service_client, pgsql, changes, status, error):
-    response = await service_client.post('/orders', json={**REQUEST, **changes})
+async def test_rejected_order_is_not_saved(service_client, pgsql, buyer_token, changes, status, error):
+    response = await service_client.post('/orders', json={**REQUEST, **changes}, bearer=buyer_token)
     assert response.status == status
     assert response.json() == {'error': error}
     with pgsql['treasury'].cursor() as cursor:
@@ -64,13 +64,13 @@ async def test_rejected_order_is_not_saved(service_client, pgsql, changes, statu
 
 
 @pytest.mark.parametrize('body', ['{', '[]', '{}', 'null'])
-async def test_invalid_json_request(service_client, body):
-    response = await service_client.post('/orders', data=body)
+async def test_invalid_json_request(service_client, buyer_token, body):
+    response = await service_client.post('/orders', data=body, bearer=buyer_token)
     assert response.status == 400
     assert response.json() == {'error': 'invalid_request'}
 
 
-async def test_large_amounts_do_not_overflow(service_client, pgsql):
+async def test_large_amounts_do_not_overflow(service_client, pgsql, buyer_token):
     price = '9' * 39
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute(
@@ -79,14 +79,16 @@ async def test_large_amounts_do_not_overflow(service_client, pgsql):
         )
     response = await service_client.post(
         '/orders', json={**REQUEST, 'quantity': 1, 'budget_yocto': price},
+        bearer=buyer_token,
     )
     assert response.status == 201
     assert response.json()['total_yocto'] == price
-    details = await service_client.get(f"/orders/{response.json()['id']}")
+    details = await service_client.get(f"/orders/{response.json()['id']}", bearer=buyer_token)
     assert details.status == 200
     assert details.json()['payment']['amount_yocto'] == price
     response = await service_client.post(
         '/orders', json={**REQUEST, 'quantity': 1000, 'budget_yocto': price},
+        bearer=buyer_token,
     )
     assert response.status == 409
     assert response.json() == {'error': 'budget_exceeded'}

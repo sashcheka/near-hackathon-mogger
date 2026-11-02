@@ -9,7 +9,8 @@ class PurchaseService {
  public:
   PurchaseService(userver::storages::postgres::ClusterPtr cluster,
                   const OllamaClient& model, std::string receiver_id);
-  Order Create(const std::string& prompt, const std::string& budget) const;
+  Order Create(const std::string& prompt, const std::string& budget,
+                 const std::string& buyer_id) const;
 
  private:
   const userver::storages::postgres::ClusterPtr cluster_;

@@ -5,6 +5,7 @@
 #include <userver/storages/postgres/component.hpp>
 
 #include "../components/merchant_settings.hpp"
+#include "authentication.hpp"
 #include "order_response.hpp"
 
 namespace community_treasury {
@@ -29,17 +30,21 @@ OrdersHandler::OrdersHandler(
     const userver::components::ComponentConfig& config,
     const userver::components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      service_(
+      cluster_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
-              .GetCluster(),
+              .GetCluster()),
+      service_(cluster_,
           context.FindComponent<MerchantSettings>().AccountId()) {}
 
 std::string OrdersHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
     userver::server::request::RequestContext&) const {
   try {
+    const auto buyer = AuthenticatedAccount(request, cluster_);
     return CreatedOrderResponse(
-        request, service_.Create(ParseRequest(request.RequestBody())));
+        request, service_.Create(ParseRequest(request.RequestBody()), buyer));
+  } catch (const AuthError& error) {
+    return AuthErrorResponse(request, error.code);
   } catch (const json::Exception&) {
     return OrderErrorResponse(request, OrderErrorCode::kInvalidRequest);
   } catch (const OrderError& error) {
