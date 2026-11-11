@@ -7,6 +7,7 @@ export type CheckoutItem = CartItem & {
 };
 export type Checkout = { id: string; total_yocto: string; budget_yocto: string; items: CheckoutItem[] };
 export type CheckoutRequest = { id: string; budget_yocto: string; items: CartItem[] };
+export type ProductSuggestion = CartItem;
 
 export type Order = {
   id: string;
@@ -94,15 +95,58 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
 
-export const createCheckout = (token: string, checkout: CheckoutRequest) =>
-  request<Checkout>('/checkouts', { method: 'POST',
+export async function suggestProduct(token: string, prompt: string) {
+  const result = await request<ProductSuggestion>('/purchase-requests', { method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, selection_only: true }) });
+  if (typeof result.product_id !== 'string' || !result.product_id || result.product_id.length > 128 ||
+      !Number.isInteger(result.quantity) || result.quantity < 1 || result.quantity > 1000)
+    throw new Error('The assistant returned an invalid selection.');
+  return result;
+}
+
+function checkedCheckout(value: Checkout, expectedId?: string): Checkout {
+  const amount = (input: unknown): input is string => typeof input === 'string' && /^[1-9][0-9]{0,38}$/.test(input);
+  const uuid = (input: unknown): input is string => typeof input === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(input);
+  if (!value || !uuid(value.id) || (expectedId && value.id !== expectedId) ||
+      !amount(value.total_yocto) || !amount(value.budget_yocto) || !Array.isArray(value.items) ||
+      value.items.length < 1 || value.items.length > 20) throw new Error('Invalid checkout details.');
+  let total = 0n;
+  const ids = new Set<string>();
+  for (const item of value.items) {
+    if (!item || !uuid(item.order_id) || ids.has(item.order_id) || typeof item.product_id !== 'string' ||
+        !item.product_id || typeof item.product_name !== 'string' || !item.product_name ||
+        typeof item.merchant_id !== 'string' || !item.merchant_id || typeof item.merchant_name !== 'string' || !item.merchant_name ||
+        typeof item.receiver_id !== 'string' || item.receiver_id.length < 2 || item.receiver_id.length > 64 ||
+        item.receiver_id === 'system' || !/^[a-z0-9]+([._-][a-z0-9]+)*$/.test(item.receiver_id) ||
+        !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000 ||
+        !amount(item.unit_price_yocto) || !amount(item.total_yocto) ||
+        (item.status !== 'paid' && item.status !== 'pending_payment') ||
+        BigInt(item.unit_price_yocto) * BigInt(item.quantity) !== BigInt(item.total_yocto))
+      throw new Error('Invalid checkout item.');
+    ids.add(item.order_id);
+    total += BigInt(item.total_yocto);
+  }
+  if (total !== BigInt(value.total_yocto) || total > BigInt(value.budget_yocto))
+    throw new Error('Invalid checkout total.');
+  return value;
+}
+
+export async function createCheckout(token: string, checkout: CheckoutRequest) {
+  const result = await request<Checkout>('/checkouts', { method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(checkout) });
-export const getCheckout = (token: string, id: string) => request<Checkout>(`/checkouts/${encodeURIComponent(id)}`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
-export const getCheckouts = (token: string) => request<{ checkouts: Checkout[] }>('/checkouts', {
-  headers: { Authorization: `Bearer ${token}` },
-});
+  return checkedCheckout(result, checkout.id);
+}
+export async function getCheckout(token: string, id: string) {
+  return checkedCheckout(await request<Checkout>(`/checkouts/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }), id);
+}
+export async function getCheckouts(token: string) {
+  const result = await request<{ checkouts: Checkout[] }>('/checkouts', { headers: { Authorization: `Bearer ${token}` } });
+  if (!Array.isArray(result.checkouts) || result.checkouts.length > 20) throw new Error('Invalid checkout history.');
+  return { checkouts: result.checkouts.map((checkout) => checkedCheckout(checkout)) };
+}
 
 export async function getWalletBalance(accountId: string) {
   const result = await request<{ account_id: string; network_id: string; amount_yocto: string }>(

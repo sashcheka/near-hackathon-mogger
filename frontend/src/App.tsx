@@ -149,11 +149,11 @@ export default function App() {
       {session && (view === 'purchase' || view === 'orders') && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
-      {view === 'store' ? <Store products={products} loading={loading} error={catalogError} cart={cart}
+      {view === 'store' ? <Store products={products} loading={loading} error={catalogError} cart={cart} token={session?.token ?? ''}
         onRefresh={() => setCatalogRevision((revision) => revision + 1)} onCart={() => setView('cart')}
-        onAdd={(product) => setCart((items) => items.some((item) => item.product_id === product.id)
-          ? items.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + 1, 1000) } : item)
-          : items.length < 20 ? [...items, { product_id: product.id, quantity: 1 }] : items)} />
+        onAdd={(product, quantity) => setCart((items) => items.some((item) => item.product_id === product.id)
+          ? items.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + quantity, 1000) } : item)
+          : items.length < 20 ? [...items, { product_id: product.id, quantity }] : items)} />
       : view === 'cart' ? <Cart key={session?.account_id ?? 'guest'} products={products} cart={cart} setCart={setCart}
         accountId={session?.account_id ?? ''} token={session?.token ?? ''} budget={budget} setBudget={setBudget}
         onCreated={(saved) => { setCheckout(saved); setCheckoutReturnView('store'); setView('checkout');

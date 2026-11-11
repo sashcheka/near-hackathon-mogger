@@ -60,8 +60,30 @@ npm run dev
 
 Open `http://localhost:5173` through VS Code's forwarded port. Backend health: `curl --fail http://localhost:8080/health`. Vite forwards `/api` to the backend inside the container. After frontend-only edits, Vite reloads automatically; rerun `npm ci` when dependencies change.
 
-Open **Store** to browse the demo catalog and current Testnet prices. The catalog
-is read-only and does not require a wallet; use **Refresh** to reload prices.
+Open **Store** to browse products by merchant and add them to a shared cart.
+Connect and verify your wallet to ask the AI for a product suggestion or create
+an order. AI suggestions can be reviewed and added to the same cart. Checkout
+checks the total budget and saved rules before creating any item orders. Each
+item needs a separate wallet-confirmed Testnet transfer; partial payments can
+be reviewed and recovered in the grouped order. A saved allowed-merchant rule
+must permit every merchant in the cart.
+
+The default merchant uses `MERCHANT_ACCOUNT_ID`. Fresh Market and Home Market
+need their own Testnet accounts before their products can be ordered. From a
+Mac terminal, open PostgreSQL and replace the examples with public account IDs:
+
+```sh
+docker compose exec postgres psql -U treasury -d treasury
+```
+
+```sql
+UPDATE merchants SET account_id = 'fresh-merchant.testnet' WHERE id = 'fresh';
+UPDATE merchants SET account_id = 'home-merchant.testnet' WHERE id = 'home';
+\q
+```
+
+The demo catalog can be browsed before accounts are configured. Existing orders
+retain their original recipients; changing a merchant account affects new orders.
 
 Other host setups and the standalone backend image: [backend setup](backend/README.md); model settings: [Ollama setup](docs/OLLAMA.md).
 

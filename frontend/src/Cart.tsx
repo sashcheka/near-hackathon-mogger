@@ -85,6 +85,7 @@ export default function Cart({ products, cart, setCart, accountId, token, budget
         <input id="cart-budget" inputMode="decimal" maxLength={40} value={draft ? fromYocto(draft.budget_yocto) : budget}
           disabled={!!draft || busy} onChange={(event) => setBudget(event.target.value)} />
         <small>Prices are checked again before the order is created.</small>
+        <small>Your allowed-merchant rule applies to every item. Clear it to buy from different merchants.</small>
         {!token && <p>Connect and verify your wallet to create an order.</p>}
         <button type="button" disabled={busy || !token || (!draft && !known)} onClick={() => { void checkout(); }}>
           {busy ? 'Creating order…' : draft ? 'Retry checkout' : 'Review order'}

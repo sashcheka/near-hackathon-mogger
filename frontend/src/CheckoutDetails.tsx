@@ -32,6 +32,7 @@ export default function CheckoutDetails({ checkout, accountId, token, onUpdate, 
     setWorking(true);
     setError('');
     setProblem('');
+    setMessage('');
     try {
       const updated = await payCheckout(checkout.id, { accountId, token }, sendTransfer, {
         active: () => active.current,
@@ -43,6 +44,7 @@ export default function CheckoutDetails({ checkout, accountId, token, onUpdate, 
         ? 'All payments confirmed.' : 'Some items are still awaiting payment.');
     } catch (reason) {
       if (active.current) {
+        setMessage('');
         setProblem(reason instanceof CheckoutPaymentError ? reason.orderId : '');
         setError(reason instanceof Error ? reason.message : 'Payment could not be completed.');
         await refresh().catch(() => {});

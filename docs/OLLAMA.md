@@ -55,6 +55,10 @@ The model receives product IDs, names and merchant names. Its instructions requi
 
 For a cart suggestion, send `{"prompt":"...","selection_only":true}` to the same endpoint with a verified session. This returns a product ID and quantity without creating an order; checkout validates prices, merchants and rules later.
 
+The expanded catalog includes three demo merchants. Configure the Fresh Market
+and Home Market Testnet accounts before running real-model checks that create
+orders for their products; see the [root setup guide](../README.md).
+
 Errors: 400 `invalid_request`, 404 `no_matching_product` or `product_not_found` if a selected product was deleted, 409 `budget_exceeded`, 502 `invalid_model_response`, 503 `model_unavailable`, and 504 `model_timeout`. Model failure creates no order; there is no automatic fallback selection. Requests have a 60-second model timeout, one attempt, no redirects, a 2048-token context, and at most 128 generated tokens. Thinking and streaming are disabled.
 
 Sampling follows [Qwen3's non-thinking recommendations](https://huggingface.co/Qwen/Qwen3-4B#best-practices): temperature 0.7, top-p 0.8, top-k 20, and min-p 0. These replace the original temperature of 0. Selection can vary between calls; these settings do not guarantee correct matching.
