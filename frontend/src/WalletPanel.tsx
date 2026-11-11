@@ -27,7 +27,7 @@ export default function WalletPanel({ navigationLabel, onToggleView, balanceRevi
       </button>
       </div>
     </div>
-    {accountId && showBalance && <WalletBalance accountId={accountId} revision={balanceRevision} />}
+    {accountId && <div hidden={!showBalance}><WalletBalance accountId={accountId} revision={balanceRevision} /></div>}
     {error && <p className="error" role="alert">{error}</p>}
   </section>;
 }
