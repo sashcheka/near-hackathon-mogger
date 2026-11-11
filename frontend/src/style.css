@@ -35,14 +35,20 @@ main button:disabled { opacity: 0.6; cursor: wait; }
 main article { margin-top: 24px; }
 main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
 main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.orders-list { list-style: none; margin: 0; padding: 0; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
-.order-item { padding: 20px 24px; border-bottom: 1px solid #d8e1d9; }
-.order-item:last-child { border-bottom: 0; }
-.order-item-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
-.order-item-header strong { min-width: 0; overflow-wrap: anywhere; }
-main .order-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.order-metrics dt { color: #52675f; font-size: 0.85rem; }
-main .order-metrics dd { text-align: left; }
+.orders-list { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.order-item { padding: 20px 24px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
+.order-summary, .order-footer { display: flex; justify-content: space-between; gap: 12px 20px; }
+.order-summary { align-items: flex-start; }
+.order-product, .order-total, .order-meta { min-width: 0; }
+.order-product strong, .order-total strong { display: block; overflow-wrap: anywhere; }
+.order-product small { margin-top: 4px; }
+.order-total { text-align: right; font-variant-numeric: tabular-nums; }
+.order-total strong { color: #17362e; }
+.order-footer { align-items: center; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5ebe6; }
+.order-meta { flex: 1 1 200px; }
+.order-meta small { margin-top: 4px; font-size: 0.75rem; }
+main .order-action { width: auto; padding: 8px 14px; font-size: 0.9rem; }
+main .order-action:hover { background: #f1f6f2; }
 .order-status { display: inline-flex; align-items: center; gap: 8px; color: #52675f; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
 .order-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #9aab9f; flex: none; }
 .order-status.paid { color: #17664d; }
@@ -56,7 +62,6 @@ main .payment-reset input { width: auto; margin-top: 5px; padding: 0; }
   main { padding: 24px 12px; }
   main form, main article { padding: 16px; }
   .order-item { padding: 16px; }
-  main .order-metrics { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
   main button { width: 100%; }
   .wallet-account, .wallet-actions { flex-basis: 100%; }
   .wallet-actions button { width: auto; flex: 1; }

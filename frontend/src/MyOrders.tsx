@@ -39,21 +39,27 @@ export default function MyOrders({ token, products, revision, onReview }: Props)
     {!loading && !error && orders.length === 0 && <p>No orders linked to this account yet.</p>}
     {orders.length > 0 && <ul className="orders-list">
       {orders.map((order) => <li key={order.id} className="order-item">
-        <div className="order-item-header">
-          <strong>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</strong>
-          <span className={`order-status ${order.status}`}>
-            {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
-          </span>
+        <div className="order-summary">
+          <div className="order-product">
+            <strong>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</strong>
+            <small>Qty {order.quantity} · {fromYocto(order.unit_price_yocto)} test NEAR each</small>
+          </div>
+          <div className="order-total">
+            <small>Total</small>
+            <strong>{fromYocto(order.total_yocto)} test NEAR</strong>
+          </div>
         </div>
-        <small>Order: {order.id}</small>
-        <dl className="order-metrics">
-          <div><dt>Quantity</dt><dd>{order.quantity}</dd></div>
-          <div><dt>Unit price</dt><dd>{fromYocto(order.unit_price_yocto)} test NEAR</dd></div>
-          <div><dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd></div>
-        </dl>
-        <button className="secondary-button" type="button" onClick={() => onReview(order)}>
-          {order.status === 'paid' ? 'View' : 'Review & pay'}
-        </button>
+        <div className="order-footer">
+          <div className="order-meta">
+            <span className={`order-status ${order.status}`}>
+              {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
+            </span>
+            <small>Order {order.id}</small>
+          </div>
+          <button className="secondary-button order-action" type="button" onClick={() => onReview(order)}>
+            {order.status === 'paid' ? 'View order' : 'Review & pay'}
+          </button>
+        </div>
       </li>)}
     </ul>}
   </section>;
