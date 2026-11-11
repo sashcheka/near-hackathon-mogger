@@ -60,6 +60,17 @@ components_manager:
       task_processor: main-task-processor
       max_request_size: 4096
 
+    handler-checkouts:
+      path: /checkouts
+      method: GET,POST
+      task_processor: main-task-processor
+      max_request_size: 8192
+
+    handler-checkout-details:
+      path: /checkouts/{checkout_id}
+      method: GET
+      task_processor: main-task-processor
+
     handler-order-details:
       path: /orders/{order_id}
       method: GET

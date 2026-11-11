@@ -14,6 +14,7 @@
 #include "components/merchant_settings.hpp"
 #include "handlers/auth_handler.hpp"
 #include "handlers/balance_handler.hpp"
+#include "handlers/checkout_handler.hpp"
 #include "handlers/order_details_handler.hpp"
 #include "handlers/orders_handler.hpp"
 #include "handlers/policy_handler.hpp"
@@ -49,6 +50,8 @@ int main(int argc, char* argv[]) {
           .Append<community_treasury::BalanceHandler>()
           .Append<community_treasury::ProductsHandler>()
           .Append<community_treasury::OrdersHandler>()
+          .Append<community_treasury::CheckoutHandler>()
+          .Append<community_treasury::CheckoutDetailsHandler>()
           .Append<community_treasury::PolicyHandler>()
           .Append<community_treasury::OrderDetailsHandler>()
           .Append<community_treasury::PaymentVerificationHandler>()
