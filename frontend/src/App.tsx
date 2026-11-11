@@ -7,6 +7,7 @@ import WalletPanel from './WalletPanel';
 import { useWallet } from './WalletProvider';
 import MyOrders from './MyOrders';
 import PaymentPanel from './PaymentPanel';
+import PolicyPanel from './PolicyPanel';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
@@ -77,6 +78,7 @@ export default function App() {
         setOrdersRevision((revision) => revision + 1);
       }
     } catch (error) {
+      if (requestVersion.current === version) setOrdersRevision((revision) => revision + 1);
       if (requestVersion.current === version)
         setError(error instanceof Error ? error.message : 'The request could not be completed.');
     } finally {
@@ -97,6 +99,8 @@ export default function App() {
 
       <WalletPanel ordersOpen={view === 'orders'}
         onToggleView={() => setView((current) => current === 'orders' ? 'purchase' : 'orders')} />
+      {session && <PolicyPanel key={session.token} token={session.token} budget={budget}
+        revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
       {view === 'orders' ? <>
         {session ? <MyOrders key={session.token} token={session.token}
@@ -119,7 +123,7 @@ export default function App() {
               setPrompt(event.target.value);
               setOrder(null);
             }} />
-          <label htmlFor="budget">Maximum budget (test NEAR)</label>
+          <label htmlFor="budget">Budget for this purchase (test NEAR)</label>
           <input id="budget" type="text" inputMode="decimal" required maxLength={40}
             value={budget} onChange={(event) => {
               setBudget(event.target.value);
@@ -144,6 +148,7 @@ export default function App() {
             <dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd>
             <dt>Budget</dt><dd>{fromYocto(order.budget_yocto)} test NEAR</dd>
           </dl>
+          {order.status !== 'paid' && <span className="order-status paid">Passed purchase checks when created</span>}
           {order.status !== 'paid' && <p>Check that the product and quantity match your request before paying.</p>}
           <small>Order: {order.id}</small>
           {session && <PaymentPanel key={`${session.token}:${order.id}`} orderId={order.id}

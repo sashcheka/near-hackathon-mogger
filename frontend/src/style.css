@@ -32,6 +32,17 @@ main button { background: #17664d; color: white; border: 0; padding: 12px 20px; 
 main button:disabled { opacity: 0.6; cursor: wait; }
 :focus-visible { outline: 3px solid #bc6719; outline-offset: 3px; }
 .error { padding: 16px; border: 1px solid #c78a8a; border-radius: 8px; color: #8d2525; background: #fff4f4; }
+.policy-panel { margin-bottom: 24px; padding: 18px 20px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
+.policy-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.policy-summary strong { display: block; overflow-wrap: anywhere; }
+.policy-panel > small { margin-top: 8px; }
+.policy-panel details { margin-top: 14px; border-top: 1px solid #e5ebe6; padding-top: 14px; }
+.policy-panel summary { color: #17664d; cursor: pointer; font-weight: 600; }
+main .policy-form { padding: 0; border: 0; }
+.policy-form label { margin-top: 14px; }
+.policy-form small { margin: 10px 0; }
+.policy-history { list-style: none; margin: 0; padding: 0; }
+.policy-history li { padding: 10px 0; border-top: 1px solid #e5ebe6; overflow-wrap: anywhere; }
 main article { margin-top: 24px; }
 main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
 main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }

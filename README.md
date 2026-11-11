@@ -17,6 +17,13 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U treasury -d treasury 
 
 Demo prices range from 0.01 to 0.50 test NEAR; toilet paper costs 0.02. Apply migrations to update an existing catalog. Existing orders keep their saved amounts; create a new order to use the new prices.
 
+After wallet verification, **Purchase rules** lets each buyer save an optional
+per-purchase limit, unit-price limit and allowed merchant. The backend checks
+new orders and records the decision; the UI shows recent checks and rechecks
+current rules before opening the wallet for an unpaid order. The purchase budget
+is a limit, not a wallet balance. Rules are enforced by this application, not
+on-chain, and the wallet owner confirms every transfer.
+
 **2. Another Mac terminal — Ollama.** Leave this server running:
 
 ```sh

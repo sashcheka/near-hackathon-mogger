@@ -51,6 +51,18 @@ async def test_model_creates_unpaid_order(service_client, pgsql, ollama, buyer_t
         assert cursor.fetchall() == [(order['id'], 'buyer.testnet')]
 
 
+async def test_model_selection_still_obeys_saved_unit_limit(service_client, pgsql, ollama, buyer_token):
+    settings = {'max_order_yocto': '', 'max_unit_yocto': '10000000000000000000000',
+                'allowed_merchant': ''}
+    assert (await service_client.put('/purchase-policy/settings', json=settings, bearer=buyer_token)).status == 200
+    response = await service_client.post('/purchase-requests', json=REQUEST, bearer=buyer_token)
+    assert response.status == 409 and response.json() == {'error': 'policy_unit_limit'}
+    assert ollama['calls'] == 1
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM orders')
+        assert cursor.fetchone() == (0,)
+
+
 @pytest.mark.parametrize(('changes', 'status', 'error'), [
     ({'content': 'not JSON'}, 502, 'invalid_model_response'),
     ({'content': '{"product_id":"made-up","quantity":1}'}, 502, 'invalid_model_response'),

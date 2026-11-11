@@ -18,6 +18,12 @@ export type PaymentVerification = {
   verified: true; order_id: string; transaction_hash: string;
   sender_id: string; network_id: 'testnet'; order_status: 'paid';
 };
+export type PurchasePolicy = {
+  max_order_yocto: string; max_unit_yocto: string; allowed_merchant: string;
+};
+export type PolicyDecision = {
+  product_id: string; total_yocto: string; decision: 'allowed' | 'blocked'; reason: string;
+};
 
 const errors: Record<string, string> = {
   unauthorized: 'Wallet verification failed or your session expired. Please verify again.',
@@ -76,6 +82,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
+
+export const getPolicy = (token: string) => request<PurchasePolicy>('/purchase-policy/settings', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+export const savePolicy = (token: string, policy: PurchasePolicy) =>
+  request<PurchasePolicy>('/purchase-policy/settings', {
+    method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(policy),
+  });
+export const getPolicyHistory = (token: string) => request<{ decisions: PolicyDecision[] }>('/purchase-policy/history', {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
 export const getOrders = (token: string) => request<{ orders: Order[] }>('/orders', {
   headers: { Authorization: `Bearer ${token}` },
