@@ -111,7 +111,7 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
   return <section className="payment-panel" aria-label="Payment" aria-busy={loading || !!phase}>
     <h3>Payment · NEAR Testnet</h3>
     {loading && <p role="status">Loading payment details…</p>}
-    {details?.status === 'paid' ? <p className="order-status paid">Payment confirmed</p> : <>
+    {details?.status === 'paid' ? <span className="order-status paid">Payment confirmed on NEAR Testnet</span> : <>
       {details?.payment && <p>
         Send <strong>{fromYocto(details.total_yocto)} test NEAR</strong> to{' '}
         <strong>{details.payment.receiver_id}</strong>. The network fee is additional.
@@ -143,7 +143,7 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
     {phase && <p role="status">{phase}</p>}
     {notice && <p role="status">{notice}</p>}
     {error && <p className="error" role="alert">{error}</p>}
-    {!loading && !phase && <button className="secondary-button" type="button" disabled={walletBusy}
+    {!loading && !phase && details?.status !== 'paid' && <button className="secondary-button" type="button" disabled={walletBusy}
       onClick={() => { if (!working.current) setRefresh(refresh + 1); }}>Refresh details</button>}
   </section>;
 }

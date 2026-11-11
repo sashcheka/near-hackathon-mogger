@@ -48,8 +48,8 @@ export default function MyOrders({ token, products, revision, onReview }: Props)
           <td>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}
             <small>{order.id}</small></td>
           <td>{order.quantity}</td>
-          <td>{fromYocto(order.unit_price_yocto)} test NEAR</td>
-          <td>{fromYocto(order.total_yocto)} test NEAR</td>
+          <td className="amount">{fromYocto(order.unit_price_yocto)} test NEAR</td>
+          <td className="amount">{fromYocto(order.total_yocto)} test NEAR</td>
           <td><span className={`order-status ${order.status}`}>
             {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
           </span></td>

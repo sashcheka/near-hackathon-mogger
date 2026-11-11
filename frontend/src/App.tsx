@@ -144,8 +144,7 @@ export default function App() {
             <dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd>
             <dt>Budget</dt><dd>{fromYocto(order.budget_yocto)} test NEAR</dd>
           </dl>
-          <p>{order.status === 'paid' ? 'Payment confirmed on NEAR Testnet.'
-            : 'Check that the product and quantity match your request before paying.'}</p>
+          {order.status !== 'paid' && <p>Check that the product and quantity match your request before paying.</p>}
           <small>Order: {order.id}</small>
           {session && <PaymentPanel key={`${session.token}:${order.id}`} orderId={order.id}
             accountId={session.account_id} token={session.token} onPaid={(paid) => {
