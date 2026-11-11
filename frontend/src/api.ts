@@ -13,7 +13,7 @@ export type Order = {
 export type PaymentDetails = {
   network_id: 'testnet'; receiver_id: string; asset: 'NEAR'; amount_yocto: string;
 };
-export type OrderDetails = Order & { payment: PaymentDetails | null };
+export type OrderDetails = Order & { payment: PaymentDetails | null; transaction_hash: string | null };
 export type PaymentVerification = {
   verified: true; order_id: string; transaction_hash: string;
   sender_id: string; network_id: 'testnet'; order_status: 'paid';

@@ -111,7 +111,16 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
   return <section className="payment-panel" aria-label="Payment" aria-busy={loading || !!phase}>
     <h3>Payment · NEAR Testnet</h3>
     {loading && <p role="status">Loading payment details…</p>}
-    {details?.status === 'paid' ? <span className="order-status paid">Payment confirmed on NEAR Testnet</span> : <>
+    {details?.status === 'paid' ? <div className="payment-receipt">
+      <span className="order-status paid">Payment confirmed on NEAR Testnet</span>
+      {details.payment && <p>Sent {fromYocto(details.total_yocto)} test NEAR to{' '}
+        <strong>{details.payment.receiver_id}</strong>.</p>}
+      {details.transaction_hash && isTransactionHash(details.transaction_hash) && <>
+        <small>Transaction: {details.transaction_hash}</small>
+        <a href={`https://testnet.nearblocks.io/txns/${details.transaction_hash}`}
+          target="_blank" rel="noopener noreferrer">View on NEAR Explorer ↗</a>
+      </>}
+    </div> : <>
       {details?.payment && <p>
         Send <strong>{fromYocto(details.total_yocto)} test NEAR</strong> to{' '}
         <strong>{details.payment.receiver_id}</strong>. The network fee is additional.

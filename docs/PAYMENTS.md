@@ -28,6 +28,10 @@ its sender, receiver, amount, block hash/time and verification time. Unique keys
 allow one payment per order and one order per network/transaction hash, including
 under concurrent requests.
 
+The authenticated `GET /orders/{id}` response includes `transaction_hash` for a
+verified payment and `null` for an unpaid order. The receipt links to the saved
+transaction on NEAR Testnet; only the order owner can retrieve these details.
+
 Repeating the accepted hash for the same owned order returns the saved success
 without RPC access. Another hash for that paid order returns 409. Other errors
 leave an unpaid order unchanged and create no payment. After 202 or a timeout,

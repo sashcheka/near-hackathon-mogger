@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import hashlib
 import uuid
 
 import pytest
@@ -118,7 +119,15 @@ async def test_records_saved_amount_and_marks_paid(service_client, pgsql, near_r
     details = await service_client.get(f"/orders/{near_rpc['order_id']}", bearer=near_rpc['token'])
     history = await service_client.get('/orders', bearer=near_rpc['token'])
     assert details.json()['status'] == 'paid'
+    assert details.json()['transaction_hash'] == HASH
     assert history.json()['orders'][0]['status'] == 'paid'
+    other_token = 'C' * 44
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('INSERT INTO auth_sessions (token_hash, account_id) VALUES (%s, %s)',
+                       (hashlib.sha256(other_token.encode()).hexdigest(), 'other.testnet'))
+    foreign = await service_client.get(f"/orders/{near_rpc['order_id']}", bearer=other_token)
+    assert foreign.status == 404
+    assert foreign.json() == {'error': 'order_not_found'}
 
 
 @pytest.mark.parametrize(('field', 'value', 'status', 'error'), [

@@ -49,6 +49,7 @@ main .order-metrics dd { text-align: left; }
 .order-status.paid::before { background: #17664d; }
 .payment-panel { margin-top: 20px; border-top: 1px solid #d8e1d9; padding-top: 8px; }
 .payment-panel button { margin: 8px 8px 0 0; }
+.payment-receipt a { display: inline-block; margin-top: 8px; color: #17664d; font-weight: 600; }
 main .payment-reset { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; margin: 16px 0 0; }
 main .payment-reset input { width: auto; margin-top: 5px; padding: 0; }
 @media (max-width: 420px) {

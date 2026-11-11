@@ -5,6 +5,7 @@
 
 #include "order_response.hpp"
 #include "authentication.hpp"
+#include "../repositories/payments_repository.hpp"
 
 namespace community_treasury {
 
@@ -24,6 +25,11 @@ std::string OrderDetailsHandler::HandleRequestThrow(
     const auto buyer = AuthenticatedAccount(request, cluster_);
     const auto order = service_.Get(request.GetPathArg("order_id"), buyer);
     userver::formats::json::ValueBuilder body(OrderJson(order));
+    body["transaction_hash"] = nullptr;
+    if (order.status == "paid") {
+      const auto hash = payments_repository::FindTransaction(cluster_, order.id);
+      if (hash) body["transaction_hash"] = *hash;
+    }
     body["payment"] = nullptr;
     if (order.receiver_id) {
       body["payment"] = userver::formats::json::MakeObject(
