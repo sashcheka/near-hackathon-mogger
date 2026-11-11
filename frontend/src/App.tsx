@@ -111,7 +111,7 @@ export default function App() {
   }
 
   return (
-    <main>
+    <main className={view === 'store' ? 'store-page' : undefined}>
       <header>
         <p className="eyebrow">Community Treasury · NEAR Testnet</p>
         <h1 ref={heading} tabIndex={-1}>

@@ -61,6 +61,8 @@ npm run dev
 Open `http://localhost:5173` through VS Code's forwarded port. Backend health: `curl --fail http://localhost:8080/health`. Vite forwards `/api` to the backend inside the container. After frontend-only edits, Vite reloads automatically; rerun `npm ci` when dependencies change.
 
 Open **Store** to browse products by merchant and add them to a shared cart.
+Search by product or merchant, filter by shop or payment setup, and sort prices
+within the loaded demo catalog.
 Connect and verify your wallet to ask the AI for a product suggestion or create
 an order. AI suggestions can be reviewed and added to the same cart. Checkout
 checks the total budget and saved rules before creating any item orders. Each
