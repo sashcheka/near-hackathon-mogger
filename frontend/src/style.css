@@ -28,8 +28,15 @@ main input, main textarea { width: 100%; padding: 12px; border: 1px solid #a1b6a
 main textarea { resize: vertical; margin-bottom: 20px; }
 main small { display: block; color: #52675f; overflow-wrap: anywhere; }
 #budget-hint { margin: 8px 0 20px; }
-main button { background: #17664d; color: white; border: 0; padding: 12px 20px; font-weight: 600; cursor: pointer; }
+main button { background: #17664d; color: white; border: 0; padding: 12px 20px; font-weight: 600; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
 main button:disabled { opacity: 0.6; cursor: wait; }
+@media (hover: hover) {
+  main button:not(:disabled):hover { background: #104c3b; }
+  main .secondary-button:not(:disabled):hover { background: #e9f3ed; border-color: #17664d; }
+}
+@media (prefers-reduced-motion: reduce) {
+  main button { transition: none; }
+}
 :focus-visible { outline: 3px solid #bc6719; outline-offset: 3px; }
 .error { padding: 16px; border: 1px solid #c78a8a; border-radius: 8px; color: #8d2525; background: #fff4f4; }
 .policy-panel { margin-bottom: 24px; padding: 18px 20px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
@@ -59,7 +66,6 @@ main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-nu
 .order-meta { flex: 1 1 200px; }
 .order-meta small { margin-top: 4px; font-size: 0.75rem; }
 main .order-action { width: auto; padding: 8px 14px; font-size: 0.9rem; }
-main .order-action:hover { background: #f1f6f2; }
 .order-status { display: inline-flex; align-items: center; gap: 8px; color: #52675f; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
 .order-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #9aab9f; flex: none; }
 .order-status.paid { color: #17664d; }
