@@ -109,14 +109,15 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
 
   const disabled = loading || !details || !!phase || walletBusy;
   return <section className="payment-panel" aria-label="Payment" aria-busy={loading || !!phase}>
-    <h3>Payment · NEAR Testnet</h3>
+    <div className="payment-heading"><h3>Payment</h3><small>NEAR Testnet</small></div>
     {loading && <p role="status">Loading payment details…</p>}
     {details?.status === 'paid' ? <div className="payment-receipt">
-      <span className="order-status paid">Payment confirmed on NEAR Testnet</span>
-      {details.payment && <p>Sent {fromYocto(details.total_yocto)} test NEAR to{' '}
-        <strong>{details.payment.receiver_id}</strong>.</p>}
+      <span className="order-status paid">Payment confirmed</span>
+      {details.payment && <div className="receipt-field">
+        <small>Sent to</small><strong>{details.payment.receiver_id}</strong>
+      </div>}
       {details.transaction_hash && isTransactionHash(details.transaction_hash) && <>
-        <small>Transaction: {details.transaction_hash}</small>
+        <div className="receipt-field"><small>Transaction</small><span>{details.transaction_hash}</span></div>
         <a href={`https://testnet.nearblocks.io/txns/${details.transaction_hash}`}
           target="_blank" rel="noopener noreferrer">View on NEAR Explorer ↗</a>
       </>}

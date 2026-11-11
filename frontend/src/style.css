@@ -70,9 +70,21 @@ main .order-action { width: auto; padding: 8px 14px; font-size: 0.9rem; }
 .order-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #9aab9f; flex: none; }
 .order-status.paid { color: #17664d; }
 .order-status.paid::before { background: #17664d; }
+.order-details-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+.order-details-product { margin-top: 20px; }
+.order-details-product h2 { margin: 0; overflow-wrap: anywhere; }
+.order-details-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; margin-top: 18px; }
+.order-details-meta small { min-width: 0; }
+.order-details-meta strong { color: #17362e; }
 .payment-panel { margin-top: 20px; border-top: 1px solid #d8e1d9; padding-top: 8px; }
+.payment-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.payment-heading h3 { margin: 12px 0; }
 .payment-panel button { margin: 8px 8px 0 0; }
-.payment-receipt a { display: inline-block; margin-top: 8px; color: #17664d; font-weight: 600; }
+.payment-receipt { padding: 16px; border-radius: 12px; background: #f4f8f5; }
+.receipt-field { margin-top: 12px; overflow-wrap: anywhere; }
+.receipt-field strong, .receipt-field span { display: block; }
+.receipt-field span { font-size: 0.85rem; }
+.payment-receipt a { display: inline-block; margin-top: 14px; color: #17664d; font-weight: 600; }
 main .payment-reset { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; margin: 16px 0 0; }
 main .payment-reset input { width: auto; margin-top: 5px; padding: 0; }
 @media (max-width: 420px) {

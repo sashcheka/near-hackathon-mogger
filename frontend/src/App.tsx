@@ -143,18 +143,28 @@ export default function App() {
       </>}
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
-        {order && <article>
-          <p className="eyebrow">Review your order · {order.status === 'paid' ? 'Paid' : 'Unpaid'}</p>
-          <h2>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</h2>
-          <dl>
-            <dt>Quantity</dt><dd>{order.quantity}</dd>
-            <dt>Unit price</dt><dd>{fromYocto(order.unit_price_yocto)} test NEAR</dd>
-            <dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd>
-            <dt>Budget</dt><dd>{fromYocto(order.budget_yocto)} test NEAR</dd>
-          </dl>
-          {order.status !== 'paid' && <span className="order-status paid">Passed purchase checks when created</span>}
+        {order && <article className="order-details">
+          <div className="order-details-heading">
+            <span className="eyebrow">Order summary</span>
+            <span className={`order-status ${order.status}`}>
+              {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
+            </span>
+          </div>
+          <div className="order-summary order-details-product">
+            <div className="order-product">
+              <h2>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</h2>
+              <small>Qty {order.quantity} · {fromYocto(order.unit_price_yocto)} test NEAR each</small>
+            </div>
+            <div className="order-total">
+              <small>Total</small>
+              <strong>{fromYocto(order.total_yocto)} test NEAR</strong>
+            </div>
+          </div>
+          <div className="order-details-meta">
+            <small>Purchase budget <strong>{fromYocto(order.budget_yocto)} test NEAR</strong></small>
+            <small>Order {order.id}</small>
+          </div>
           {order.status !== 'paid' && <p>Check that the product and quantity match your request before paying.</p>}
-          <small>Order: {order.id}</small>
           {session && <PaymentPanel key={`${session.token}:${order.id}`} orderId={order.id}
             accountId={session.account_id} token={session.token} onPaid={(paid) => {
               setOrder(paid);
