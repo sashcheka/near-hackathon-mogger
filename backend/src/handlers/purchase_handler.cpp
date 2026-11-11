@@ -32,9 +32,14 @@ std::string PurchaseHandler::HandleRequestThrow(
   try {
     const auto buyer = AuthenticatedAccount(request, cluster_);
     const auto value = json::FromString(request.RequestBody());
-    if (!value.IsObject() || value.GetSize() != 2 ||
-        !value["prompt"].IsString() || !value["budget_yocto"].IsString())
+    if (!value.IsObject() || value.GetSize() != 2 || !value["prompt"].IsString())
       throw OrderError(OrderErrorCode::kInvalidRequest);
+    if (value["selection_only"].IsBool() && value["selection_only"].As<bool>()) {
+      const auto selection = service_.Suggest(value["prompt"].As<std::string>());
+      return JsonResponse(request, Status::kOk, json::MakeObject(
+          "product_id", selection.product_id, "quantity", selection.quantity));
+    }
+    if (!value["budget_yocto"].IsString()) throw OrderError(OrderErrorCode::kInvalidRequest);
     return CreatedOrderResponse(
         request, service_.Create(value["prompt"].As<std::string>(),
                                  value["budget_yocto"].As<std::string>(), buyer));

@@ -16,7 +16,7 @@ constexpr std::string_view kInstructions =
     "Select one catalog product and its quantity for the purchase request. "
     "Return JSON with product_id and quantity only. "
     "Select a product only if it satisfies ALL explicitly requested attributes, "
-    "including ingredient or source, dietary restrictions, preparation, and "
+    "including merchant, ingredient or source, dietary restrictions, preparation, and "
     "negations. A matching category alone is insufficient. "
     "Different plant sources and dairy are not interchangeable. "
     "If no product satisfies every requested attribute, return "
@@ -55,7 +55,8 @@ ProductSelection OllamaClient::Select(
 
   json::ValueBuilder catalog(json::Type::kArray);
   for (const auto& product : products) {
-    catalog.PushBack(json::MakeObject("id", product.id, "name", product.name));
+    catalog.PushBack(json::MakeObject("id", product.id, "name", product.name,
+                                      "merchant", product.merchant_name));
   }
   json::ValueBuilder messages(json::Type::kArray);
   messages.PushBack(

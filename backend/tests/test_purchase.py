@@ -11,9 +11,9 @@ REQUEST = {'prompt': 'Buy one pack of toilet paper',
 @pytest.fixture
 def ollama(mockserver, pgsql, seed_catalog):
     with pgsql['treasury'].cursor() as cursor:
-        cursor.execute('SELECT id, name FROM products ORDER BY id')
-        catalog = [{'id': product_id, 'name': name}
-                   for product_id, name in cursor.fetchall()]
+        cursor.execute('SELECT p.id, p.name, m.name FROM products p JOIN merchants m ON m.id = p.merchant_id ORDER BY p.id')
+        catalog = [{'id': product_id, 'name': name, 'merchant': merchant}
+                   for product_id, name, merchant in cursor.fetchall()]
     state = {'content': '{"product_id":"toilet-paper","quantity":1}',
              'status': 200, 'delay': 0, 'done': True, 'calls': 0}
 
@@ -58,6 +58,16 @@ async def test_model_selection_still_obeys_saved_unit_limit(service_client, pgsq
     response = await service_client.post('/purchase-requests', json=REQUEST, bearer=buyer_token)
     assert response.status == 409 and response.json() == {'error': 'policy_unit_limit'}
     assert ollama['calls'] == 1
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM orders')
+        assert cursor.fetchone() == (0,)
+
+
+async def test_model_suggestion_does_not_create_order(service_client, pgsql, ollama, buyer_token):
+    response = await service_client.post('/purchase-requests',
+        json={'prompt': REQUEST['prompt'], 'selection_only': True}, bearer=buyer_token)
+    assert response.status == 200
+    assert response.json() == {'product_id': 'toilet-paper', 'quantity': 1}
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute('SELECT count(*) FROM orders')
         assert cursor.fetchone() == (0,)
