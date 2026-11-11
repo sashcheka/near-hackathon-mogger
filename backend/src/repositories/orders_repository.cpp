@@ -13,7 +13,8 @@ namespace pg = userver::storages::postgres;
 namespace {
 
 const pg::Query kFindPrice{
-    "SELECT price_yocto::text FROM products WHERE id = $1 FOR SHARE",
+    "SELECT p.price_yocto::text, m.id, m.name, COALESCE(m.account_id, '') "
+    "FROM products p JOIN merchants m ON m.id = p.merchant_id WHERE p.id = $1 FOR SHARE OF p, m",
     pg::Query::NameLiteral{"find_order_product_price"}};
 
 const pg::Query kInsertOrder{
@@ -37,11 +38,11 @@ const pg::Query kListOrders{
 
 }  // namespace
 
-std::optional<std::string> FindPriceForShare(pg::Transaction& transaction,
+std::optional<PurchaseProduct> FindProductForShare(pg::Transaction& transaction,
                                              const std::string& product_id) {
   const auto result = transaction.Execute(kFindPrice, product_id);
   if (result.IsEmpty()) return std::nullopt;
-  return result.AsSingleRow<std::string>();
+  return result.AsSingleRow<PurchaseProduct>(pg::kRowTag);
 }
 
 Order Insert(pg::Transaction& transaction, const CreateOrderRequest& request,

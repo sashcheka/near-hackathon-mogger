@@ -49,18 +49,24 @@ Order OrdersService::Create(const CreateOrderRequest& request,
   auto transaction = cluster_->Begin(
       "create_order", pg::ClusterHostType::kMaster, pg::Transaction::RW);
   const auto policy = policies_repository::Lock(transaction, buyer_id);
-  const auto price =
-      orders_repository::FindPriceForShare(transaction, request.product_id);
-  if (!price) throw OrderError(OrderErrorCode::kProductNotFound);
+  const auto product =
+      orders_repository::FindProductForShare(transaction, request.product_id);
+  if (!product) throw OrderError(OrderErrorCode::kProductNotFound);
+  const auto& price = product->price;
+  const auto receiver = product->merchant_account.empty() && product->merchant_id == "general"
+                            ? receiver_id_ : product->merchant_account;
 
   // At most 39 price digits * 1000 units fits safely in 256 bits.
-  const Amount total = ParseAmount(*price) * request.quantity;
+  const Amount total = ParseAmount(price) * request.quantity;
   std::optional<OrderErrorCode> rejection;
   std::string reason = "within_limits";
   if (total > budget) {
     rejection = OrderErrorCode::kBudgetExceeded;
     reason = "budget_exceeded";
-  } else if (const auto violation = PolicyViolation(policy, total, ParseAmount(*price), receiver_id_);
+  } else if (product->merchant_id != "general" && receiver.empty()) {
+    rejection = OrderErrorCode::kMerchantNotConfigured;
+    reason = "merchant_not_configured";
+  } else if (const auto violation = PolicyViolation(policy, total, ParseAmount(price), receiver);
              !violation.empty()) {
     reason = violation;
     rejection = violation == "policy_order_limit" ? OrderErrorCode::kPolicyOrderLimit
@@ -68,15 +74,15 @@ Order OrdersService::Create(const CreateOrderRequest& request,
                                                    : OrderErrorCode::kPolicyMerchant;
   }
   policies_repository::Record(transaction, buyer_id, request.product_id,
-                              request.quantity, *price, total.str(), receiver_id_,
+                              request.quantity, price, total.str(), receiver,
                               rejection ? "blocked" : "allowed", reason);
   if (rejection) {
     transaction.Commit();
     throw OrderError(*rejection);
   }
 
-  auto order = orders_repository::Insert(transaction, request, *price,
-                                         total.str(), receiver_id_, buyer_id);
+  auto order = orders_repository::Insert(transaction, request, price,
+                                         total.str(), receiver, buyer_id);
   transaction.Commit();
   return order;
 }

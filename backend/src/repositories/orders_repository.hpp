@@ -9,7 +9,14 @@
 
 namespace community_treasury::orders_repository {
 
-std::optional<std::string> FindPriceForShare(
+struct PurchaseProduct {
+  std::string price;
+  std::string merchant_id;
+  std::string merchant_name;
+  std::string merchant_account;
+};
+
+std::optional<PurchaseProduct> FindProductForShare(
     userver::storages::postgres::Transaction& transaction,
     const std::string& product_id);
 

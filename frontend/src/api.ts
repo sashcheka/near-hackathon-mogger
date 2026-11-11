@@ -1,4 +1,5 @@
-export type Product = { id: string; name: string; price_yocto: string };
+export type Product = { id: string; name: string; price_yocto: string;
+  merchant_id: string; merchant_name: string };
 
 export type Order = {
   id: string;
@@ -35,6 +36,7 @@ const errors: Record<string, string> = {
   policy_order_limit: 'The total exceeds your saved purchase limit.',
   policy_unit_limit: 'The unit price exceeds your saved unit price limit.',
   policy_merchant: 'The merchant is not allowed by your saved rules.',
+  merchant_not_configured: 'This merchant has not set up a Testnet payment account yet.',
   balance_unavailable: 'Wallet balance is unavailable. Try refreshing.',
   no_matching_product: 'No matching product was found in the catalog.',
   invalid_model_response: 'The assistant returned an invalid selection. Please try again.',

@@ -25,7 +25,9 @@ std::string ProductsHandler::HandleRequestThrow(
   json::ValueBuilder products(json::Type::kArray);
   for (const auto& product : products_repository::List(pg_cluster_)) {
     products.PushBack(json::MakeObject("id", product.id, "name", product.name,
-                                       "price_yocto", product.price_yocto));
+                                       "price_yocto", product.price_yocto,
+                                       "merchant_id", product.merchant_id,
+                                       "merchant_name", product.merchant_name));
   }
 
   request.GetHttpResponse().SetContentType(

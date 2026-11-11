@@ -1,6 +1,18 @@
 import psycopg2.errors
 import pytest
 
+FRESH = {'milk-whole', 'milk-lactose-free', 'oat-drink', 'almond-drink',
+         'bread-whole-wheat', 'bread-gluten-free'}
+HOME = {'premium-paper', 'dish-soap', 'laundry-detergent'}
+
+
+def merchant(product_id):
+    if product_id in FRESH:
+        return {'merchant_id': 'fresh', 'merchant_name': 'Fresh Market'}
+    if product_id in HOME:
+        return {'merchant_id': 'home', 'merchant_name': 'Home Market'}
+    return {'merchant_id': 'general', 'merchant_name': 'Everyday Market'}
+
 
 async def test_products(service_client):
     response = await service_client.get('/products')
@@ -27,7 +39,7 @@ async def test_products(service_client):
         ('water-still', 'Still drinking water, 1 L', '10000000000000000000000'),
     ]
     assert response.json() == {'products': [
-        {'id': product_id, 'name': name, 'price_yocto': price}
+        {'id': product_id, 'name': name, 'price_yocto': price, **merchant(product_id)}
         for product_id, name, price in expected
     ]}
 
@@ -55,7 +67,7 @@ async def test_products_read_updated_database_values(service_client, pgsql):
     products = response.json()['products']
     assert len(products) == 18
     assert next(p for p in products if p['id'] == 'toilet-paper') == {
-        'id': 'toilet-paper', 'name': name, 'price_yocto': price,
+        'id': 'toilet-paper', 'name': name, 'price_yocto': price, **merchant('toilet-paper'),
     }
 
 
