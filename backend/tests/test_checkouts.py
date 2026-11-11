@@ -54,6 +54,20 @@ async def test_total_budget_and_missing_merchant_prevent_partial_checkout(servic
         assert cursor.fetchone() == (0,)
 
 
+async def test_grouped_checkout_keeps_partial_payment_status(service_client, pgsql, buyer_token, cart):
+    checkout = (await service_client.post('/checkouts', json=cart, bearer=buyer_token)).json()
+    first = checkout['items'][0]
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO payments (order_id, network_id, transaction_hash, sender_id, receiver_id, "
+            "amount_yocto, block_hash, block_timestamp_ns) VALUES (%s, 'testnet', %s, "
+            "'buyer.testnet', %s, %s, %s, 1)",
+            (first['order_id'], 'A' * 44, first['receiver_id'], first['total_yocto'], '7' * 44))
+        cursor.execute("UPDATE orders SET status = 'paid' WHERE id = %s", (first['order_id'],))
+    result = await service_client.get(f"/checkouts/{cart['id']}", bearer=buyer_token)
+    assert [item['status'] for item in result.json()['items']] == ['paid', 'pending_payment']
+
+
 async def test_policy_applies_to_full_checkout_before_and_after_creation(service_client, buyer_token, cart):
     policy = {'max_order_yocto': '30000000000000000000000', 'max_unit_yocto': '', 'allowed_merchant': ''}
     assert (await service_client.put('/purchase-policy/settings', json=policy, bearer=buyer_token)).status == 200
@@ -67,3 +81,16 @@ async def test_policy_applies_to_full_checkout_before_and_after_creation(service
     for item in checkout['items']:
         order = await service_client.get(f"/orders/{item['order_id']}", bearer=buyer_token)
         assert order.json()['policy_error'] == 'policy_order_limit'
+
+
+@pytest.mark.parametrize(('policy', 'reason'), [
+    ({'max_order_yocto': '', 'max_unit_yocto': '10000000000000000000000', 'allowed_merchant': ''}, 'policy_unit_limit'),
+    ({'max_order_yocto': '', 'max_unit_yocto': '', 'allowed_merchant': 'merchant.testnet'}, 'policy_merchant'),
+])
+async def test_any_disallowed_item_blocks_all_orders(service_client, pgsql, buyer_token, cart, policy, reason):
+    await service_client.put('/purchase-policy/settings', json=policy, bearer=buyer_token)
+    response = await service_client.post('/checkouts', json=cart, bearer=buyer_token)
+    assert response.status == 409 and response.json() == {'error': reason}
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM orders')
+        assert cursor.fetchone() == (0,)
