@@ -43,10 +43,11 @@ def test_database_preserves_unpaid_status_on_schema_migration(pgsql, migrate_dat
         cursor.execute('DROP TABLE payments')
         cursor.execute('ALTER TABLE orders DROP CONSTRAINT orders_status_check')
         cursor.execute("ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status = 'pending_payment')")
-        cursor.execute("DELETE FROM schema_migrations WHERE version = '20261103000100'")
+        cursor.execute("DELETE FROM schema_migrations WHERE version IN ('20261103000100', '20261111000400')")
     migrate_database(database.conninfo)
     with database.cursor() as cursor:
         cursor.execute('SELECT status, total_yocto FROM orders WHERE id = %s', (order_id,))
         assert cursor.fetchone() == ('pending_payment', 2)
         cursor.execute('SELECT count(*) FROM payments')
         assert cursor.fetchone() == (0,)
+        cursor.execute("UPDATE orders SET status = 'cancelled' WHERE id = %s", (order_id,))
