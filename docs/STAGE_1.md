@@ -2,9 +2,9 @@
 
 ## Scope
 
-One user, one demo merchant, a small product catalog, one real model integration, and native NEAR Testnet payments confirmed by the user. Demo prices are expressed in test NEAR.
+One user, three demo merchants, a small product catalog, one real model integration, and native NEAR Testnet payments confirmed by the user. Demo prices are expressed in test NEAR.
 
-The model selects a product and quantity. The backend derives the amount from the catalog and the merchant recipient from server configuration, checks the budget, and records the order before requesting payment. Amounts use exact integer yoctoNEAR values and strings in JSON.
+The model selects a product and quantity. The backend derives the amount and merchant recipient from configured catalog data, checks the budget, and records the order before requesting payment. A cart groups item orders across merchants; each item is paid by a separate wallet-confirmed transfer. Amounts use exact integer yoctoNEAR values and strings in JSON.
 
 ## Acceptance criteria
 
@@ -24,13 +24,14 @@ The store is a demo implementation. Product delivery is simulated. Autonomous sp
 3. Implement deterministic purchase validation and focused tests. Implemented for product, quantity, and per-order budget, with exact arithmetic and transactional price snapshots; test execution is pending.
 4. Connect the model to product selection. Local Ollama integration and `POST /purchase-requests` are implemented; `qwen3:4b` passed 19/20 catalog checks in three reported runs. The remaining mismatch is accepted for the PoC with user review; HTTP test-suite execution remains unconfirmed. See [setup](OLLAMA.md).
 5. Add the React purchase screen. Implemented: request and budget input, order review, and error display. The user reports the screen running; see [frontend setup](../frontend/README.md).
-6. Connect the wallet and verify Testnet payments end to end. Merchant configuration, authentication, owned orders and durable payment acceptance are implemented. The UI now requests a user-confirmed native Testnet transfer, saves recovery state and retries verification without sending again. Updated frontend tests/build, cancellation/recovery checks and the first real Testnet payment remain pending. See [payment flow](PAYMENTS.md) and [authentication](AUTH.md).
+6. Connect the wallet and verify Testnet payments end to end. A single-item Testnet payment was confirmed in the UI. The grouped checkout, its individual transfers and recovery still require an end-to-end test. See [payment flow](PAYMENTS.md) and [authentication](AUTH.md).
 
 ## After the first confirmed payment
 
 - Store view with product prices, available stock and quantities.
 - Extend the recent-order list with full history and verified payment results.
-- Multiple merchants with separate catalogs and payment recipients.
+- Merchant onboarding and external catalogs.
 
-The next milestone remains one real Testnet payment: authenticated buyer, bound
-order, wallet confirmation, finalized verification and a durable `paid` result.
+The next milestone is a grouped Testnet checkout with multiple configured
+merchants: confirm each transfer, test interrupted payment recovery, and verify
+the resulting statuses after reloading.

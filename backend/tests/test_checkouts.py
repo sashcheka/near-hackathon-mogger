@@ -20,7 +20,11 @@ async def test_checkout_is_atomic_owned_and_idempotent(service_client, pgsql, bu
     assert checkout['total_yocto'] == '40000000000000000000000'
     assert [(item['merchant_id'], item['receiver_id']) for item in checkout['items']] == [
         ('fresh', 'fresh.testnet'), ('general', 'merchant.testnet')]
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute("UPDATE merchants SET account_id = 'changed.testnet' WHERE id = 'fresh'")
+        cursor.execute("UPDATE products SET price_yocto = 1 WHERE id = 'milk-whole'")
     assert (await service_client.post('/checkouts', json=cart, bearer=buyer_token)).json() == checkout
+    assert (await service_client.get(f"/checkouts/{cart['id']}", bearer=buyer_token)).json() == checkout
     altered = {**cart, 'items': [cart['items'][0]]}
     assert (await service_client.post('/checkouts', json=altered, bearer=buyer_token)).status == 409
     history = await service_client.get('/checkouts', bearer=buyer_token)

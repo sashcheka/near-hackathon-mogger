@@ -46,7 +46,7 @@ OLLAMA_CHAT_URL=http://host.lima.internal:11434/api/chat \
   ./build/community_treasury_backend --config configs/static_config.yaml
 ```
 
-For an unchanged, already-built backend, run only the environment assignments and executable from `/app/backend`. Payable orders require `MERCHANT_ACCOUNT_ID`; unset means new orders have `payment: null`.
+For an unchanged, already-built backend, run only the environment assignments and executable from `/app/backend`. The default merchant uses `MERCHANT_ACCOUNT_ID`; other merchants use their configured database accounts.
 
 **5. Another dev container terminal — frontend.** Leave Vite running:
 
@@ -116,10 +116,10 @@ Click **Verify ownership** and approve the sign-in message to authenticate the c
 Order creation, retrieval and transfer verification now require a verified session. The backend saves the session account as the buyer and restricts access to its orders; old unowned orders remain stored but cannot be claimed. The frontend sends the token and clears its displayed order when the session changes. Apply migrations before rebuilding the backend. Full build/tests and the updated browser flow still need to be checked. Wallet connection does not mark orders paid.
 
 Click **Orders** to the left of the wallet buttons to load the verified account's
-20 latest saved orders with quantity, unit price, total and status. The same button
+recent single-product and grouped orders with prices and payment status. The same button
 becomes **← Back to purchase** and returns to the form with its inputs preserved.
 The list has a **Refresh** button. Old unowned orders do not appear. The list
-requires the updated backend's `GET /orders`; no additional migration is needed.
+requires the updated backend's `GET /orders` and `GET /checkouts` endpoints.
 
 ## Merchant and transfer verification
 
@@ -156,7 +156,7 @@ checks and the first real transfer still require developer validation.
 
 ## Stage 1
 
-One user, a demo store, a real model call, and a user-confirmed NEAR Testnet transfer.
+One user, three demo merchants, a real model call, and user-confirmed NEAR Testnet transfers.
 
 ```mermaid
 flowchart TD
@@ -176,12 +176,12 @@ flowchart TD
 | React + TypeScript | [frontend/](frontend/) | Request input, purchase review, wallet confirmation, and result display |
 | Stage specification | [docs/STAGE_1.md](docs/STAGE_1.md) | Scope, acceptance criteria, and implementation sequence |
 
-The backend derives prices from its catalog and the merchant recipient from server configuration, validates spending limits independently of the model, and holds no wallet keys. Payment success requires verification of the transaction outcome.
+The backend derives prices and merchant recipients from configured catalog data, validates spending limits independently of the model, and holds no wallet keys. Payment success requires verification of the transaction outcome.
 
 Future extensions include scheduled purchases, contract-enforced spending permissions, merchant APIs, NEAR Intents, and collective budgets. Stage 1 uses direct Testnet transfers without a custom Rust contract.
 
 The backend exposes catalog, owned orders, AI selection and durable payment
 acceptance. Orders save the validated price, configured merchant and Testnet network.
-The [local Ollama integration](docs/OLLAMA.md) passed 19/20 catalog checks in three
-reported runs. The [purchase screen](frontend/README.md) and wallet connection passed
-earlier browser checks. Updated payment tests and real-transfer validation are pending.
+An earlier [Ollama catalog check](docs/OLLAMA.md) passed 19/20 cases in three
+reported runs. A single-item Testnet payment was confirmed in the UI. The updated
+merchant-aware model, grouped checkout and payment recovery require full validation.
