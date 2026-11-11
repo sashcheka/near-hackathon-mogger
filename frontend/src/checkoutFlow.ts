@@ -11,7 +11,11 @@ type Dependencies = { getCheckout: typeof getCheckout; getOrder: typeof getOrder
 const dependencies: Dependencies = { getCheckout, getOrder, startPayment, readAttempt };
 
 export class CheckoutPaymentError extends Error {
-  constructor(message: string, readonly orderId: string) { super(message); }
+  readonly orderId: string;
+  constructor(message: string, orderId: string) {
+    super(message);
+    this.orderId = orderId;
+  }
 }
 
 export async function payCheckout(id: string, context: Context, send: (details: PaymentDetails) => Promise<string>,
