@@ -76,6 +76,8 @@ export default function Store({ products, loading, error, onRefresh, cart, token
     {cart.length >= 20 && <small>A cart can contain up to 20 different products.</small>}
     {!loading && !error && merchants.map(([id, name]) => <section key={id} className="store-merchant">
       <h3>{name}</h3>
+      {!products.find((product) => product.merchant_id === id)?.merchant_ready &&
+        <small>Payment setup needed before ordering from this merchant.</small>}
       <ul className="store-grid">
         {products.filter((product) => product.merchant_id === id).map((product) => <li className="store-product" key={product.id}>
           <strong>{product.name}</strong>

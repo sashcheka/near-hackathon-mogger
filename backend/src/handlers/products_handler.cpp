@@ -6,6 +6,7 @@
 #include <userver/storages/postgres/component.hpp>
 
 #include "../repositories/products_repository.hpp"
+#include "../components/merchant_settings.hpp"
 
 namespace community_treasury {
 
@@ -17,7 +18,8 @@ ProductsHandler::ProductsHandler(
     : HttpHandlerBase(config, context),
       pg_cluster_(
           context.FindComponent<userver::components::Postgres>("postgres-db")
-              .GetCluster()) {}
+              .GetCluster()),
+      default_merchant_(context.FindComponent<MerchantSettings>().AccountId()) {}
 
 std::string ProductsHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
@@ -27,7 +29,9 @@ std::string ProductsHandler::HandleRequestThrow(
     products.PushBack(json::MakeObject("id", product.id, "name", product.name,
                                        "price_yocto", product.price_yocto,
                                        "merchant_id", product.merchant_id,
-                                       "merchant_name", product.merchant_name));
+                                       "merchant_name", product.merchant_name,
+                                       "merchant_ready", !product.merchant_account.empty() ||
+                                         (product.merchant_id == "general" && !default_merchant_.empty())));
   }
 
   request.GetHttpResponse().SetContentType(

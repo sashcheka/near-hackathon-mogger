@@ -10,7 +10,7 @@ namespace pg = userver::storages::postgres;
 namespace {
 
 const pg::Query kSelectProducts{
-    "SELECT p.id, p.name, p.price_yocto::text, m.id, m.name "
+    "SELECT p.id, p.name, p.price_yocto::text, m.id, m.name, COALESCE(m.account_id, '') "
     "FROM products p JOIN merchants m ON m.id = p.merchant_id ORDER BY p.id",
     pg::Query::NameLiteral{"select_products"}};
 

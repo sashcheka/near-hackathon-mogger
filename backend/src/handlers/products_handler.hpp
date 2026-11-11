@@ -23,6 +23,7 @@ class ProductsHandler final
 
  private:
   const userver::storages::postgres::ClusterPtr pg_cluster_;
+  const std::string default_merchant_;
 };
 
 }  // namespace community_treasury

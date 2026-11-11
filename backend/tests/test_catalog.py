@@ -8,10 +8,10 @@ HOME = {'premium-paper', 'dish-soap', 'laundry-detergent'}
 
 def merchant(product_id):
     if product_id in FRESH:
-        return {'merchant_id': 'fresh', 'merchant_name': 'Fresh Market'}
+        return {'merchant_id': 'fresh', 'merchant_name': 'Fresh Market', 'merchant_ready': False}
     if product_id in HOME:
-        return {'merchant_id': 'home', 'merchant_name': 'Home Market'}
-    return {'merchant_id': 'general', 'merchant_name': 'Everyday Market'}
+        return {'merchant_id': 'home', 'merchant_name': 'Home Market', 'merchant_ready': False}
+    return {'merchant_id': 'general', 'merchant_name': 'Everyday Market', 'merchant_ready': True}
 
 
 async def test_products(service_client):

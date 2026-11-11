@@ -10,6 +10,7 @@ struct Product {
   std::string price_yocto;
   std::string merchant_id;
   std::string merchant_name;
+  std::string merchant_account;
 };
 
 }  // namespace community_treasury

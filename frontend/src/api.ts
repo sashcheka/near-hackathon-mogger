@@ -1,5 +1,5 @@
 export type Product = { id: string; name: string; price_yocto: string;
-  merchant_id: string; merchant_name: string };
+  merchant_id: string; merchant_name: string; merchant_ready: boolean };
 export type CartItem = { product_id: string; quantity: number };
 export type CheckoutItem = CartItem & {
   order_id: string; product_name: string; unit_price_yocto: string; total_yocto: string;
