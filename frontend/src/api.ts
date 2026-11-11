@@ -3,7 +3,7 @@ export type Product = { id: string; name: string; price_yocto: string;
 export type CartItem = { product_id: string; quantity: number };
 export type CheckoutItem = CartItem & {
   order_id: string; product_name: string; unit_price_yocto: string; total_yocto: string;
-  merchant_id: string; merchant_name: string; receiver_id: string; status: 'pending_payment' | 'paid';
+  merchant_id: string; merchant_name: string; receiver_id: string; status: 'pending_payment' | 'paid' | 'cancelled';
 };
 export type Checkout = { id: string; total_yocto: string; budget_yocto: string; items: CheckoutItem[] };
 export type CheckoutRequest = { id: string; budget_yocto: string; items: CartItem[] };
@@ -16,7 +16,7 @@ export type Order = {
   unit_price_yocto: string;
   total_yocto: string;
   budget_yocto: string;
-  status: 'pending_payment' | 'paid';
+  status: 'pending_payment' | 'paid' | 'cancelled';
 };
 
 export type PaymentDetails = {
@@ -121,7 +121,7 @@ function checkedCheckout(value: Checkout, expectedId?: string): Checkout {
         item.receiver_id === 'system' || !/^[a-z0-9]+([._-][a-z0-9]+)*$/.test(item.receiver_id) ||
         !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000 ||
         !amount(item.unit_price_yocto) || !amount(item.total_yocto) ||
-        (item.status !== 'paid' && item.status !== 'pending_payment') ||
+        (item.status !== 'paid' && item.status !== 'pending_payment' && item.status !== 'cancelled') ||
         BigInt(item.unit_price_yocto) * BigInt(item.quantity) !== BigInt(item.total_yocto))
       throw new Error('Invalid checkout item.');
     ids.add(item.order_id);
@@ -146,6 +146,16 @@ export async function getCheckouts(token: string) {
   const result = await request<{ checkouts: Checkout[] }>('/checkouts', { headers: { Authorization: `Bearer ${token}` } });
   if (!Array.isArray(result.checkouts) || result.checkouts.length > 20) throw new Error('Invalid checkout history.');
   return { checkouts: result.checkouts.map((checkout) => checkedCheckout(checkout)) };
+}
+
+export const cancelOrder = (token: string, id: string) => request<Order>(`/orders/${encodeURIComponent(id)}`, {
+  method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+});
+
+export async function cancelCheckout(token: string, id: string) {
+  return checkedCheckout(await request<Checkout>(`/checkouts/${encodeURIComponent(id)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+  }), id);
 }
 
 export async function getWalletBalance(accountId: string) {

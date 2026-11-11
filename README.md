@@ -123,6 +123,10 @@ becomes **← Back to purchase** and returns to the form with its inputs preserv
 The list has a **Refresh** button. Old unowned orders do not appear. The list
 requires the updated backend's `GET /orders` and `GET /checkouts` endpoints.
 
+Unpaid items and fully unpaid orders can be cancelled from their details. They
+remain in history. Check the wallet before cancelling: an already submitted
+transfer can still be verified from the cancelled item's payment screen.
+
 ## Merchant and transfer verification
 
 Create a separate Testnet merchant account in your wallet. Stop the backend and relaunch it from the dev container; replace `your-merchant.testnet` with that account ID:

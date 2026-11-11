@@ -49,7 +49,8 @@ export default function MyOrders({ token, products, revision, onReview, onChecko
           </div><div className="order-total"><small>Total</small><strong>{fromYocto(checkout.total_yocto)} test NEAR</strong></div></div>
           <div className="order-footer"><div className="order-meta">
             <span className={`order-status ${paid === checkout.items.length ? 'paid' : ''}`}>
-              {paid === checkout.items.length ? 'Paid' : `${paid} of ${checkout.items.length} payments confirmed`}
+              {paid === checkout.items.length ? 'Paid' : checkout.items.every((item) => item.status === 'cancelled')
+                ? 'Cancelled' : `${paid} of ${checkout.items.length} payments confirmed`}
             </span><small>Order {checkout.id}</small>
           </div><button className="secondary-button order-action" type="button" onClick={() => onCheckout(checkout)}>View order</button></div>
         </li>;
@@ -70,12 +71,12 @@ export default function MyOrders({ token, products, revision, onReview, onChecko
         <div className="order-footer">
           <div className="order-meta">
             <span className={`order-status ${order.status}`}>
-              {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
+              {order.status === 'paid' ? 'Paid' : order.status === 'cancelled' ? 'Cancelled' : 'Awaiting payment'}
             </span>
             <small>Order {order.id}</small>
           </div>
           <button className="secondary-button order-action" type="button" onClick={() => onReview(order)}>
-            {order.status === 'paid' ? 'View order' : 'Review & pay'}
+            {order.status === 'pending_payment' ? 'Review & pay' : 'View order'}
           </button>
         </div>
       </li>)}

@@ -68,12 +68,12 @@ components_manager:
 
     handler-checkout-details:
       path: /checkouts/{checkout_id}
-      method: GET
+      method: GET,DELETE
       task_processor: main-task-processor
 
     handler-order-details:
       path: /orders/{order_id}
-      method: GET
+      method: GET,DELETE
       task_processor: main-task-processor
 
     merchant-settings:

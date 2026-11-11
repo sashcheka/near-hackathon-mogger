@@ -3,6 +3,9 @@
 #include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/io/string_types.hpp>
+#include <userver/storages/postgres/transaction.hpp>
 
 #include "../components/merchant_settings.hpp"
 #include "authentication.hpp"
@@ -65,6 +68,21 @@ std::string CheckoutDetailsHandler::HandleRequestThrow(const userver::server::ht
                                                        userver::server::request::RequestContext&) const {
   try {
     const auto buyer = AuthenticatedAccount(request, cluster_);
+    if (request.GetMethod() == userver::server::http::HttpMethod::kDelete) {
+      const auto id = request.GetPathArg("checkout_id");
+      service_.Get(id, buyer);
+      auto tx = cluster_->Begin("cancel_checkout", userver::storages::postgres::ClusterHostType::kMaster,
+                                userver::storages::postgres::Transaction::RW);
+      const auto states = tx.Execute("SELECT status FROM orders WHERE checkout_id = $1::uuid "
+          "AND buyer_id = $2 ORDER BY id FOR UPDATE", id, buyer).AsContainer<std::vector<std::string>>();
+      for (const auto& status : states)
+        if (status == "paid") return JsonResponse(request, Status::kConflict,
+            json::MakeObject("error", "order_already_paid"));
+      tx.Execute("UPDATE orders SET status = 'cancelled' WHERE checkout_id = $1::uuid "
+                 "AND buyer_id = $2 AND status = 'pending_payment'", id, buyer);
+      tx.Commit();
+      return JsonResponse(request, Status::kOk, CheckoutJson(service_.Get(id, buyer)));
+    }
     return JsonResponse(request, Status::kOk, CheckoutJson(service_.Get(request.GetPathArg("checkout_id"), buyer)));
   } catch (const AuthError& error) { return AuthErrorResponse(request, error.code); }
     catch (const OrderError& error) { return OrderErrorResponse(request, error.code); }

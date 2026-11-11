@@ -212,7 +212,7 @@ export default function App() {
           <div className="order-details-heading">
             <span className="eyebrow">Order summary</span>
             <span className={`order-status ${order.status}`}>
-              {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
+              {order.status === 'paid' ? 'Paid' : order.status === 'cancelled' ? 'Cancelled' : 'Awaiting payment'}
             </span>
           </div>
           <div className="order-summary order-details-product">
@@ -229,7 +229,7 @@ export default function App() {
             <small>Purchase budget <strong>{fromYocto(order.budget_yocto)} test NEAR</strong></small>
             <small>Order {order.id}</small>
           </div>
-          {order.status !== 'paid' && <p>Check that the product and quantity match your request before paying.</p>}
+          {order.status === 'pending_payment' && <p>Check that the product and quantity match your request before paying.</p>}
           {session && <PaymentPanel key={`${session.token}:${order.id}`} orderId={order.id}
             accountId={session.account_id} token={session.token} onPaid={(paid) => {
               setOrder(paid);

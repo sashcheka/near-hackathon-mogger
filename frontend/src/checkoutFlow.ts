@@ -30,7 +30,7 @@ export async function payCheckout(id: string, context: Context, send: (details: 
   try {
     const latest = await refresh();
     const prepared: { item: CheckoutItem; details: PaymentDetails }[] = [];
-    for (const item of latest.items.filter((entry) => entry.status !== 'paid')) {
+    for (const item of latest.items.filter((entry) => entry.status === 'pending_payment')) {
       currentId = item.order_id;
       const order = await deps.getOrder(item.order_id, context.token);
       if (order.id !== item.order_id) throw new Error('The service returned a different payment.');

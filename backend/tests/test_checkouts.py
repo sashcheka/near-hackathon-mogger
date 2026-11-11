@@ -68,6 +68,35 @@ async def test_grouped_checkout_keeps_partial_payment_status(service_client, pgs
     assert [item['status'] for item in result.json()['items']] == ['paid', 'pending_payment']
 
 
+async def test_cancel_item_and_checkout_preserves_history_and_ownership(service_client, pgsql, buyer_token, cart):
+    checkout = (await service_client.post('/checkouts', json=cart, bearer=buyer_token)).json()
+    order_id = checkout['items'][0]['order_id']
+    other = 'C' * 44
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('INSERT INTO auth_sessions (token_hash, account_id) VALUES (%s, %s)',
+                       (hashlib.sha256(other.encode()).hexdigest(), 'other.testnet'))
+    assert (await service_client.delete(f'/orders/{order_id}', bearer=other)).status == 404
+    assert (await service_client.delete(f'/checkouts/{cart["id"]}', bearer=other)).status == 404
+    cancelled = await service_client.delete(f'/orders/{order_id}', bearer=buyer_token)
+    assert cancelled.status == 200 and cancelled.json()['status'] == 'cancelled'
+    assert (await service_client.delete(f'/orders/{order_id}', bearer=buyer_token)).status == 200
+    result = await service_client.delete(f'/checkouts/{cart["id"]}', bearer=buyer_token)
+    assert result.status == 200
+    assert [item['status'] for item in result.json()['items']] == ['cancelled', 'cancelled']
+    assert (await service_client.get(f'/checkouts/{cart["id"]}', bearer=buyer_token)).json() == result.json()
+
+
+async def test_cannot_cancel_paid_checkout(service_client, pgsql, buyer_token, cart):
+    checkout = (await service_client.post('/checkouts', json=cart, bearer=buyer_token)).json()
+    paid_id = checkout['items'][0]['order_id']
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute("UPDATE orders SET status = 'paid' WHERE id = %s", (paid_id,))
+    assert (await service_client.delete(f'/orders/{paid_id}', bearer=buyer_token)).status == 409
+    assert (await service_client.delete(f'/checkouts/{cart["id"]}', bearer=buyer_token)).status == 409
+    result = await service_client.get(f'/checkouts/{cart["id"]}', bearer=buyer_token)
+    assert [item['status'] for item in result.json()['items']] == ['paid', 'pending_payment']
+
+
 async def test_policy_applies_to_full_checkout_before_and_after_creation(service_client, buyer_token, cart):
     policy = {'max_order_yocto': '30000000000000000000000', 'max_unit_yocto': '', 'allowed_merchant': ''}
     assert (await service_client.put('/purchase-policy/settings', json=policy, bearer=buyer_token)).status == 200

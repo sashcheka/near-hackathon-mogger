@@ -49,7 +49,7 @@ void Record(const pg::ClusterPtr& cluster, const Order& order,
     tx.Commit();
     return;
   }
-  if (current.status != "pending_payment")
+  if (current.status != "pending_payment" && current.status != "cancelled")
     throw PaymentError(PaymentErrorCode::kOrderAlreadyPaid);
   if (!current.snapshot_ok) throw PaymentError(PaymentErrorCode::kOrderChanged);
   if (!current.time_ok) throw PaymentError(PaymentErrorCode::kBeforeOrder);

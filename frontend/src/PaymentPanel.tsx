@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, getOrder, policyMessage } from './api';
+import { ApiError, cancelOrder, getOrder, policyMessage } from './api';
 import type { OrderDetails } from './api';
 import { fromYocto } from './amounts';
 import { checkPayment, PaymentRecoveryError, resetUnknownPayment, startPayment } from './paymentFlow';
 import { clearAttempt, isTransactionHash, payableDetails, PaymentNotSent, readAttempt } from './paymentState';
 import type { Attempt } from './paymentState';
 import { useWallet } from './WalletProvider';
+import { cancelSafely } from './cancelFlow';
 
 type Props = { orderId: string; accountId: string; token: string; onPaid: (order: OrderDetails) => void };
 
@@ -107,6 +108,25 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
     }
   }
 
+  async function cancel() {
+    if (working.current || walletBusy || !details || details.status !== 'pending_payment') return;
+    if (!window.confirm('Cancel this item? Check your wallet first: a submitted transfer can still be confirmed.')) return;
+    working.current = true;
+    setPhase('Cancelling…');
+    setError('');
+    try {
+      await cancelSafely(accountId, [orderId], () => cancelOrder(token, orderId));
+      const updated = await getOrder(orderId, token);
+      setDetails(updated);
+      onPaid(updated);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Cancellation failed.');
+    } finally {
+      working.current = false;
+      setPhase('');
+    }
+  }
+
   const disabled = loading || !details || !!phase || walletBusy;
   return <section className="payment-panel" aria-label="Payment" aria-busy={loading || !!phase}>
     <div className="payment-heading"><h3>Payment</h3><small>NEAR Testnet</small></div>
@@ -122,15 +142,25 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
           target="_blank" rel="noopener noreferrer">View on NEAR Explorer ↗</a>
       </>}
     </div> : <>
-      {details?.payment && <p>
+      {details?.status === 'cancelled' && <p>This item is cancelled. If a transfer was already sent, enter its transaction hash to check it.</p>}
+      {details?.payment && details.status === 'pending_payment' && <p>
         Send <strong>{fromYocto(details.total_yocto)} test NEAR</strong> to{' '}
         <strong>{details.payment.receiver_id}</strong>. The network fee is additional.
       </p>}
       {details && !details.payment && <p>Payment is unavailable for this order.</p>}
       {details && !attempt && details.policy_error !== '' &&
         <p className="error" role="alert">{policyMessage(details.policy_error)}</p>}
-      {!loading && details?.payment && !attempt && details.policy_error === '' && <button type="button" disabled={disabled}
+      {!loading && details?.status === 'pending_payment' && details.payment && !attempt && details.policy_error === '' && <button type="button" disabled={disabled}
         onClick={() => { void run('pay'); }}>Pay {fromYocto(details.total_yocto)} test NEAR</button>}
+      {details?.status === 'pending_payment' && <button className="secondary-button" type="button" disabled={disabled}
+        onClick={() => { void cancel(); }}>Cancel item</button>}
+      {details?.status === 'cancelled' && !attempt && <div>
+        <label htmlFor="cancelled-payment-hash">Transaction hash</label>
+        <input id="cancelled-payment-hash" value={hashInput} maxLength={44} disabled={disabled}
+          onChange={(event) => setHashInput(event.target.value)} />
+        <button type="button" disabled={disabled || !isTransactionHash(hashInput.trim())}
+          onClick={() => { void run('check'); }}>Check payment</button>
+      </div>}
       {attempt?.hash && <>
         <small>Transaction: {attempt.hash}</small>
         <button type="button" disabled={disabled} onClick={() => { void run('check'); }}>Check payment</button>
@@ -143,13 +173,13 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
           onChange={(event) => setHashInput(event.target.value)} />
         <button type="button" disabled={disabled || !isTransactionHash(hashInput.trim())}
           onClick={() => { void run('check'); }}>Check payment</button>
-        <label className="payment-reset">
+        {details?.status === 'pending_payment' && <><label className="payment-reset">
           <input type="checkbox" checked={noTransfer} disabled={disabled}
             onChange={(event) => setNoTransfer(event.target.checked)} />
           <span>I checked my wallet: no transfer was sent and no confirmation is open.</span>
         </label>
         <button className="secondary-button" type="button" disabled={disabled || !noTransfer}
-          onClick={() => { void run('reset'); }}>Allow a new payment</button>
+          onClick={() => { void run('reset'); }}>Allow a new payment</button></>}
       </div>}
     </>}
     {phase && <p role="status">{phase}</p>}

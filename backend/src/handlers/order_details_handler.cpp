@@ -2,6 +2,8 @@
 
 #include <userver/components/component.hpp>
 #include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/io/string_types.hpp>
 
 #include "order_response.hpp"
 #include "authentication.hpp"
@@ -24,6 +26,15 @@ std::string OrderDetailsHandler::HandleRequestThrow(
   try {
     const auto buyer = AuthenticatedAccount(request, cluster_);
     const auto order = service_.Get(request.GetPathArg("order_id"), buyer);
+    if (request.GetMethod() == userver::server::http::HttpMethod::kDelete) {
+      const auto result = cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
+          "UPDATE orders SET status = 'cancelled' WHERE id = $1::uuid AND buyer_id = $2 "
+          "AND status IN ('pending_payment', 'cancelled') RETURNING id::text", order.id, buyer);
+      if (result.IsEmpty()) return JsonResponse(request, userver::server::http::HttpStatus::kConflict,
+          userver::formats::json::MakeObject("error", "order_already_paid"));
+      return JsonResponse(request, userver::server::http::HttpStatus::kOk,
+                          OrderJson(service_.Get(order.id, buyer)));
+    }
     userver::formats::json::ValueBuilder body(OrderJson(order));
     body["policy_error"] = service_.CheckPolicy(order, buyer);
     body["transaction_hash"] = nullptr;

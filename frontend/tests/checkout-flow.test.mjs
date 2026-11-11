@@ -54,3 +54,12 @@ test('an unresolved previous attempt stops the checkout before any transfer', as
   await assert.rejects(payCheckout('checkout', f.context, async () => '', f.hooks, f.deps), /previous payment/);
   assert.deepEqual(f.calls, []);
 });
+
+test('skips cancelled items when paying remaining items', async () => {
+  const f = fixture();
+  f.items[0].status = 'cancelled';
+  const result = await payCheckout('checkout', f.context, async () => '', f.hooks, f.deps);
+  assert.deepEqual(f.calls, ['second']);
+  assert.equal(result.items[0].status, 'cancelled');
+  assert.equal(result.items[1].status, 'paid');
+});

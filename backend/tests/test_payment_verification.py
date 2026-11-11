@@ -86,6 +86,14 @@ async def verify(service_client, state, **changes):
     )
 
 
+async def test_cancelled_order_still_accepts_a_verified_transfer(service_client, pgsql, near_rpc):
+    response = await service_client.delete(f"/orders/{near_rpc['order_id']}", bearer=near_rpc['token'])
+    assert response.status == 200 and response.json()['status'] == 'cancelled'
+    response = await verify(service_client, near_rpc)
+    assert response.status == 200 and response.json()['order_status'] == 'paid'
+    assert_paid(pgsql, near_rpc)
+
+
 def assert_unpaid(pgsql, state):
     with pgsql['treasury'].cursor() as cursor:
         cursor.execute('SELECT status FROM orders WHERE id = %s', (state['order_id'],))

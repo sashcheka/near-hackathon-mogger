@@ -156,9 +156,12 @@ main .cart-controls button { width: auto; padding: 8px 14px; }
 .checkout-item > div { min-width: 0; overflow-wrap: anywhere; }
 .checkout-product strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .checkout-item .order-total { display: grid; gap: 4px; }
+.checkout-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+main .checkout-actions button { white-space: nowrap; }
+.cart-checkout > button + button { margin-left: 10px; }
 @media (max-width: 700px) {
   .checkout-item { grid-template-columns: minmax(0, 1fr) auto; }
-  .checkout-item .order-action { grid-column: 1 / -1; justify-self: start; }
+  .checkout-actions { grid-column: 1 / -1; }
 }
 .orders-list { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .order-item { padding: 20px 24px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }

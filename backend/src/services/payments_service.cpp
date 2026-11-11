@@ -31,7 +31,7 @@ Order PaymentsService::Verify(const std::string& order_id,
       throw PaymentError(PaymentErrorCode::kOrderChanged);
     return order;
   }
-  if (order.status != "pending_payment")
+  if (order.status != "pending_payment" && order.status != "cancelled")
     throw PaymentError(PaymentErrorCode::kOrderChanged);
   // Network calls finish before the recorder locks the order in PostgreSQL.
   const auto transfer =
