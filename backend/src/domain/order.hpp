@@ -37,6 +37,7 @@ enum class OrderErrorCode {
   kPolicyUnitLimit,
   kPolicyMerchant,
   kMerchantNotConfigured,
+  kCheckoutConflict,
   kOrderNotFound
 };
 

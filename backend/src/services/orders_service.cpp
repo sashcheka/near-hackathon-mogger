@@ -101,8 +101,9 @@ Order OrdersService::Get(const std::string& id, const std::string& buyer_id) con
 
 std::string OrdersService::CheckPolicy(const Order& order, const std::string& buyer_id) const {
   if (order.status != "pending_payment") return {};
+  const auto checkout_total = orders_repository::FindCheckoutTotal(cluster_, order.id, buyer_id);
   return PolicyViolation(policies_repository::Get(cluster_, buyer_id),
-                         ParseAmount(order.total_yocto), ParseAmount(order.unit_price_yocto),
+                         ParseAmount(checkout_total.value_or(order.total_yocto)), ParseAmount(order.unit_price_yocto),
                          order.receiver_id.value_or(""));
 }
 

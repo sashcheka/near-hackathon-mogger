@@ -13,7 +13,7 @@ namespace pg = userver::storages::postgres;
 namespace {
 
 const pg::Query kFindPrice{
-    "SELECT p.price_yocto::text, m.id, m.name, COALESCE(m.account_id, '') "
+    "SELECT p.price_yocto::text, p.name, m.id, m.name, COALESCE(m.account_id, '') "
     "FROM products p JOIN merchants m ON m.id = p.merchant_id WHERE p.id = $1 FOR SHARE OF p, m",
     pg::Query::NameLiteral{"find_order_product_price"}};
 
@@ -33,7 +33,7 @@ const pg::Query kFindOrder{
 const pg::Query kListOrders{
     "SELECT id::text, product_id, quantity, unit_price_yocto::text, "
     "total_yocto::text, budget_yocto::text, status, receiver_id, network_id, buyer_id "
-    "FROM orders WHERE buyer_id = $1 ORDER BY created_at DESC, id DESC LIMIT 20",
+    "FROM orders WHERE buyer_id = $1 AND checkout_id IS NULL ORDER BY created_at DESC, id DESC LIMIT 20",
     pg::Query::NameLiteral{"list_recent_orders"}};
 
 }  // namespace
@@ -75,6 +75,16 @@ std::vector<Order> ListRecent(const pg::ClusterPtr& cluster,
                               const std::string& buyer_id) {
   return cluster->Execute(pg::ClusterHostType::kMaster, kListOrders, buyer_id)
       .AsContainer<std::vector<Order>>(pg::kRowTag);
+}
+
+std::optional<std::string> FindCheckoutTotal(const pg::ClusterPtr& cluster,
+                                              const std::string& order_id,
+                                              const std::string& buyer_id) {
+  const auto result = cluster->Execute(pg::ClusterHostType::kMaster,
+      "SELECT c.total_yocto::text FROM orders o JOIN checkouts c ON c.id = o.checkout_id "
+      "WHERE o.id = $1::uuid AND o.buyer_id = $2 AND c.buyer_id = $2", order_id, buyer_id);
+  if (result.IsEmpty()) return std::nullopt;
+  return result.AsSingleRow<std::string>();
 }
 
 }  // namespace community_treasury::orders_repository

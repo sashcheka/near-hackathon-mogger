@@ -11,6 +11,7 @@ namespace community_treasury::orders_repository {
 
 struct PurchaseProduct {
   std::string price;
+  std::string name;
   std::string merchant_id;
   std::string merchant_name;
   std::string merchant_account;
@@ -32,5 +33,9 @@ std::optional<Order> Find(
 std::vector<Order> ListRecent(
     const userver::storages::postgres::ClusterPtr& cluster,
     const std::string& buyer_id);
+
+std::optional<std::string> FindCheckoutTotal(
+    const userver::storages::postgres::ClusterPtr& cluster,
+    const std::string& order_id, const std::string& buyer_id);
 
 }  // namespace community_treasury::orders_repository

@@ -56,6 +56,9 @@ inline std::string OrderErrorResponse(
   } else if (code == OrderErrorCode::kMerchantNotConfigured) {
     status = Status::kConflict;
     message = "merchant_not_configured";
+  } else if (code == OrderErrorCode::kCheckoutConflict) {
+    status = Status::kConflict;
+    message = "checkout_conflict";
   } else if (code == OrderErrorCode::kOrderNotFound) {
     status = Status::kNotFound;
     message = "order_not_found";
