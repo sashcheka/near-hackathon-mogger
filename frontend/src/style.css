@@ -57,6 +57,11 @@ main .policy-form { padding: 0; border: 0; }
 main article { margin-top: 24px; }
 main dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
 main dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.store-refresh { flex: none; }
+.store-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; list-style: none; margin: 20px 0 0; padding: 0; }
+.store-product { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; min-width: 0; padding: 20px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
+.store-product strong, .store-product span { overflow-wrap: anywhere; }
+.store-product span { font-weight: 600; font-variant-numeric: tabular-nums; }
 .orders-list { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .order-item { padding: 20px 24px; border: 1px solid #d8e1d9; border-radius: 16px; background: white; }
 .order-summary, .order-footer { display: flex; justify-content: space-between; gap: 12px 20px; }

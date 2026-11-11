@@ -1,9 +1,10 @@
 import { useWallet } from './WalletProvider';
 import WalletBalance from './WalletBalance';
 
-type Props = { navigationLabel: string; onToggleView: () => void; balanceRevision: number };
+type Props = { navigationLabel: string; onToggleView: () => void; balanceRevision: number;
+  onStore?: () => void; showBalance: boolean };
 
-export default function WalletPanel({ navigationLabel, onToggleView, balanceRevision }: Props) {
+export default function WalletPanel({ navigationLabel, onToggleView, balanceRevision, onStore, showBalance }: Props) {
   const { accountId, ready, busy, error, session, authenticate, connect, disconnect } = useWallet();
   return <section className="wallet-panel" aria-label="NEAR Testnet wallet" aria-busy={busy}>
     <div className="wallet-controls">
@@ -13,6 +14,7 @@ export default function WalletPanel({ navigationLabel, onToggleView, balanceRevi
         {accountId && <small>{session ? 'Ownership verified' : 'Ownership not verified'}</small>}
       </div>
       <div className="wallet-actions" role="group" aria-label="Orders and wallet">
+        {onStore && <button className="secondary-button" type="button" onClick={onStore}>Store</button>}
         <button className="secondary-button" type="button"
           aria-controls="workspace" onClick={onToggleView}>
           {navigationLabel}
@@ -25,7 +27,7 @@ export default function WalletPanel({ navigationLabel, onToggleView, balanceRevi
       </button>
       </div>
     </div>
-    {accountId && <WalletBalance accountId={accountId} revision={balanceRevision} />}
+    {accountId && showBalance && <WalletBalance accountId={accountId} revision={balanceRevision} />}
     {error && <p className="error" role="alert">{error}</p>}
   </section>;
 }

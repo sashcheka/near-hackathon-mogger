@@ -60,6 +60,9 @@ npm run dev
 
 Open `http://localhost:5173` through VS Code's forwarded port. Backend health: `curl --fail http://localhost:8080/health`. Vite forwards `/api` to the backend inside the container. After frontend-only edits, Vite reloads automatically; rerun `npm ci` when dependencies change.
 
+Open **Store** to browse the demo catalog and current Testnet prices. The catalog
+is read-only and does not require a wallet; use **Refresh** to reload prices.
+
 Other host setups and the standalone backend image: [backend setup](backend/README.md); model settings: [Ollama setup](docs/OLLAMA.md).
 
 ## Stop all services

@@ -8,12 +8,13 @@ import { useWallet } from './WalletProvider';
 import MyOrders from './MyOrders';
 import PaymentPanel from './PaymentPanel';
 import PolicyPanel from './PolicyPanel';
+import Store from './Store';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [view, setView] = useState<'purchase' | 'orders' | 'order'>('purchase');
+  const [view, setView] = useState<'purchase' | 'orders' | 'order' | 'store'>('purchase');
   const [orderReturnView, setOrderReturnView] = useState<'purchase' | 'orders'>('orders');
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
@@ -23,6 +24,8 @@ export default function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState('');
+  const [catalogRevision, setCatalogRevision] = useState(0);
   const [ordersRevision, setOrdersRevision] = useState(0);
 
   useEffect(() => {
@@ -55,15 +58,17 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setCatalogError('');
     getProducts().then(({ products }) => {
       if (active) setProducts(products);
     }).catch((error: Error) => {
-      if (active) setError(error.message);
+      if (active) setCatalogError(error.message);
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [catalogRevision]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,27 +100,40 @@ export default function App() {
       <header>
         <p className="eyebrow">Community Treasury · NEAR Testnet</p>
         <h1 ref={heading} tabIndex={-1}>
-          {view === 'orders' ? 'Your orders.' : view === 'order' ? 'Order details.' : 'A purchase within your budget.'}
+          {view === 'orders' ? 'Your orders.' : view === 'order' ? 'Order details.'
+            : view === 'store' ? 'Explore the store.' : 'A purchase within your budget.'}
         </h1>
         <p>{view === 'orders' ? 'Review your purchases and payment statuses.'
           : view === 'order' ? 'Review your order and payment details.'
+          : view === 'store' ? 'Browse the demo products available to the assistant.'
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel balanceRevision={ordersRevision} navigationLabel={view === 'order'
+      <WalletPanel balanceRevision={ordersRevision} showBalance={view !== 'store'}
+        onStore={view === 'purchase' ? () => {
+          ++requestVersion.current;
+          setBusy(false);
+          setError('');
+          setOrder(null);
+          setCatalogRevision((revision) => revision + 1);
+          setView('store');
+        } : undefined}
+        navigationLabel={view === 'order'
         ? (orderReturnView === 'orders' ? '← Back to orders' : '← Back to purchase')
-        : view === 'orders' ? '← Back to purchase' : 'Orders'}
+        : view === 'orders' || view === 'store' ? '← Back to purchase' : 'Orders'}
         onToggleView={() => {
           ++requestVersion.current;
           setBusy(false);
           setError('');
           setOrder(null);
-          setView((current) => current === 'order' ? orderReturnView : current === 'orders' ? 'purchase' : 'orders');
+          setView((current) => current === 'order' ? orderReturnView
+            : current === 'orders' || current === 'store' ? 'purchase' : 'orders');
         }} />
-      {session && view !== 'order' && <PolicyPanel key={session.token} token={session.token} budget={budget}
+      {session && view !== 'order' && view !== 'store' && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
-      {view === 'orders' ? <>
+      {view === 'store' ? <Store products={products} loading={loading} error={catalogError}
+        onRefresh={() => setCatalogRevision((revision) => revision + 1)} /> : view === 'orders' ? <>
         {session ? <MyOrders key={session.token} token={session.token}
           products={products} revision={ordersRevision} onReview={(saved) => {
             ++requestVersion.current;
@@ -131,7 +149,7 @@ export default function App() {
       {!session && <p>Connect your wallet and verify ownership to create an order.</p>}
 
       <form onSubmit={submit}>
-        <fieldset disabled={busy || loading || walletBusy || !session || products.length === 0}>
+        <fieldset disabled={busy || loading || !!catalogError || walletBusy || !session || products.length === 0}>
           <label htmlFor="prompt">What do you need?</label>
           <textarea id="prompt" required maxLength={2000} rows={3}
             value={prompt} onChange={(event) => {
@@ -151,7 +169,8 @@ export default function App() {
       </form>
 
       {loading && <p role="status">Loading catalog…</p>}
-      {!loading && !error && products.length === 0 && <p>No products are available.</p>}
+      {catalogError && <p className="error" role="alert">{catalogError}</p>}
+      {!loading && !catalogError && products.length === 0 && <p>No products are available.</p>}
       </>}
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
