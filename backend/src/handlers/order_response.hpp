@@ -44,6 +44,15 @@ inline std::string OrderErrorResponse(
   } else if (code == OrderErrorCode::kBudgetExceeded) {
     status = Status::kConflict;
     message = "budget_exceeded";
+  } else if (code == OrderErrorCode::kPolicyOrderLimit) {
+    status = Status::kConflict;
+    message = "policy_order_limit";
+  } else if (code == OrderErrorCode::kPolicyUnitLimit) {
+    status = Status::kConflict;
+    message = "policy_unit_limit";
+  } else if (code == OrderErrorCode::kPolicyMerchant) {
+    status = Status::kConflict;
+    message = "policy_merchant";
   } else if (code == OrderErrorCode::kOrderNotFound) {
     status = Status::kNotFound;
     message = "order_not_found";

@@ -33,6 +33,9 @@ enum class OrderErrorCode {
   kInvalidRequest,
   kProductNotFound,
   kBudgetExceeded,
+  kPolicyOrderLimit,
+  kPolicyUnitLimit,
+  kPolicyMerchant,
   kOrderNotFound
 };
 

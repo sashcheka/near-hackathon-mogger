@@ -8,6 +8,7 @@
 
 #include "../domain/near_account.hpp"
 #include "../repositories/orders_repository.hpp"
+#include "../repositories/policies_repository.hpp"
 
 namespace community_treasury {
 namespace {
@@ -19,6 +20,15 @@ Amount ParseAmount(const std::string& value) {
   Amount result = 0;
   for (const char digit : value) result = result * 10 + (digit - '0');
   return result;
+}
+
+std::string PolicyViolation(const policies_repository::Policy& policy,
+                            const Amount& total, const Amount& unit,
+                            const std::string& receiver) {
+  if (!policy.max_order.empty() && total > ParseAmount(policy.max_order)) return "policy_order_limit";
+  if (!policy.max_unit.empty() && unit > ParseAmount(policy.max_unit)) return "policy_unit_limit";
+  if (!policy.merchant.empty() && receiver != policy.merchant) return "policy_merchant";
+  return {};
 }
 
 }  // namespace
@@ -38,13 +48,32 @@ Order OrdersService::Create(const CreateOrderRequest& request,
   namespace pg = userver::storages::postgres;
   auto transaction = cluster_->Begin(
       "create_order", pg::ClusterHostType::kMaster, pg::Transaction::RW);
+  const auto policy = policies_repository::Lock(transaction, buyer_id);
   const auto price =
       orders_repository::FindPriceForShare(transaction, request.product_id);
   if (!price) throw OrderError(OrderErrorCode::kProductNotFound);
 
   // At most 39 price digits * 1000 units fits safely in 256 bits.
   const Amount total = ParseAmount(*price) * request.quantity;
-  if (total > budget) throw OrderError(OrderErrorCode::kBudgetExceeded);
+  std::optional<OrderErrorCode> rejection;
+  std::string reason = "within_limits";
+  if (total > budget) {
+    rejection = OrderErrorCode::kBudgetExceeded;
+    reason = "budget_exceeded";
+  } else if (const auto violation = PolicyViolation(policy, total, ParseAmount(*price), receiver_id_);
+             !violation.empty()) {
+    reason = violation;
+    rejection = violation == "policy_order_limit" ? OrderErrorCode::kPolicyOrderLimit
+                : violation == "policy_unit_limit" ? OrderErrorCode::kPolicyUnitLimit
+                                                   : OrderErrorCode::kPolicyMerchant;
+  }
+  policies_repository::Record(transaction, buyer_id, request.product_id,
+                              request.quantity, *price, total.str(), receiver_id_,
+                              rejection ? "blocked" : "allowed", reason);
+  if (rejection) {
+    transaction.Commit();
+    throw OrderError(*rejection);
+  }
 
   auto order = orders_repository::Insert(transaction, request, *price,
                                          total.str(), receiver_id_, buyer_id);
@@ -62,6 +91,13 @@ Order OrdersService::Get(const std::string& id, const std::string& buyer_id) con
   auto order = orders_repository::Find(cluster_, id, buyer_id);
   if (!order) throw OrderError(OrderErrorCode::kOrderNotFound);
   return *order;
+}
+
+std::string OrdersService::CheckPolicy(const Order& order, const std::string& buyer_id) const {
+  if (order.status != "pending_payment") return {};
+  return PolicyViolation(policies_repository::Get(cluster_, buyer_id),
+                         ParseAmount(order.total_yocto), ParseAmount(order.unit_price_yocto),
+                         order.receiver_id.value_or(""));
 }
 
 std::vector<Order> OrdersService::ListRecent(const std::string& buyer_id) const {

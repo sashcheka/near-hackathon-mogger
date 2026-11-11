@@ -25,6 +25,7 @@ std::string OrderDetailsHandler::HandleRequestThrow(
     const auto buyer = AuthenticatedAccount(request, cluster_);
     const auto order = service_.Get(request.GetPathArg("order_id"), buyer);
     userver::formats::json::ValueBuilder body(OrderJson(order));
+    body["policy_error"] = service_.CheckPolicy(order, buyer);
     body["transaction_hash"] = nullptr;
     if (order.status == "paid") {
       const auto hash = payments_repository::FindTransaction(cluster_, order.id);

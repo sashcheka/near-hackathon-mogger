@@ -13,6 +13,7 @@ class OrdersService {
                          std::string receiver_id = {});
   Order Create(const CreateOrderRequest& request, const std::string& buyer_id) const;
   Order Get(const std::string& id, const std::string& buyer_id) const;
+  std::string CheckPolicy(const Order& order, const std::string& buyer_id) const;
   std::vector<Order> ListRecent(const std::string& buyer_id) const;
 
  private:

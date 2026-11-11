@@ -23,7 +23,7 @@ async def test_details_use_saved_price_and_payment_settings(service_client, pgsq
         bearer=buyer_token,
     )
     assert response.status == 200
-    assert response.json() == {**order, 'transaction_hash': None, 'payment': {
+    assert response.json() == {**order, 'policy_error': '', 'transaction_hash': None, 'payment': {
         'network_id': 'testnet', 'receiver_id': 'merchant.testnet',
         'asset': 'NEAR', 'amount_yocto': AMOUNT,
     }}
