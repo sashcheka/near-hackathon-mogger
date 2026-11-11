@@ -14,6 +14,7 @@ export default function App() {
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const [view, setView] = useState<'purchase' | 'orders' | 'order'>('purchase');
+  const [orderReturnView, setOrderReturnView] = useState<'purchase' | 'orders'>('orders');
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('0.03');
@@ -30,7 +31,7 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    if (view === 'orders' || !order?.id || !session) return;
+    if (view !== 'order' || !order?.id || !session) return;
     let active = true;
     const version = requestVersion.current;
     getOrder(order.id, session.token).then((saved) => {
@@ -76,6 +77,8 @@ export default function App() {
       const created = await createPurchase(prompt.trim(), amount, session.token);
       if (requestVersion.current === version) {
         setOrder(created);
+        setOrderReturnView('purchase');
+        setView('order');
         setOrdersRevision((revision) => revision + 1);
       }
     } catch (error) {
@@ -99,8 +102,16 @@ export default function App() {
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel balanceRevision={ordersRevision} navigationLabel={view === 'order' ? '← Back to orders' : view === 'orders' ? '← Back to purchase' : 'Orders'}
-        onToggleView={() => setView((current) => current === 'orders' ? 'purchase' : 'orders')} />
+      <WalletPanel balanceRevision={ordersRevision} navigationLabel={view === 'order'
+        ? (orderReturnView === 'orders' ? '← Back to orders' : '← Back to purchase')
+        : view === 'orders' ? '← Back to purchase' : 'Orders'}
+        onToggleView={() => {
+          ++requestVersion.current;
+          setBusy(false);
+          setError('');
+          setOrder(null);
+          setView((current) => current === 'order' ? orderReturnView : current === 'orders' ? 'purchase' : 'orders');
+        }} />
       {session && view !== 'order' && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
@@ -110,6 +121,7 @@ export default function App() {
             ++requestVersion.current;
             setBusy(false);
             setOrder(saved);
+            setOrderReturnView('orders');
             setError('');
             setView('order');
           }} />
@@ -143,7 +155,7 @@ export default function App() {
       </>}
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
-        {order && <article className="order-details">
+        {view === 'order' && order && <article className="order-details">
           <div className="order-details-heading">
             <span className="eyebrow">Order summary</span>
             <span className={`order-status ${order.status}`}>
