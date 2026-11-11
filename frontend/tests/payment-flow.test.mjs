@@ -7,7 +7,7 @@ const hash = 'A'.repeat(44);
 const context = { orderId: 'order', accountId: 'buyer.testnet', token: 'token' };
 const payment = { network_id: 'testnet', receiver_id: 'merchant.testnet', asset: 'NEAR', amount_yocto: '2' };
 const originalOrder = { id: 'order', product_id: 'paper', quantity: 1, unit_price_yocto: '2',
-  total_yocto: '2', budget_yocto: '3', status: 'pending_payment', payment };
+  total_yocto: '2', budget_yocto: '3', status: 'pending_payment', policy_error: '', payment };
 
 function setup(t) {
   const values = new Map();
@@ -106,6 +106,14 @@ test('changed reviewed details stop before any wallet request', async (t) => {
   const { env } = setup(t);
   await assert.rejects(startPayment(context, { ...payment, receiver_id: 'other.testnet' },
     async () => { assert.fail('Must not send'); }, env), /details changed/);
+  assert.equal(readAttempt('buyer.testnet', 'order', env.storage), null);
+});
+
+test('changed purchase rules stop before opening the wallet', async (t) => {
+  const { state, env } = setup(t);
+  state.order.policy_error = 'policy_merchant';
+  await assert.rejects(startPayment(context, payment,
+    async () => { assert.fail('Must not send'); }, env), /merchant is not allowed/);
   assert.equal(readAttempt('buyer.testnet', 'order', env.storage), null);
 });
 

@@ -13,7 +13,7 @@ export type Order = {
 export type PaymentDetails = {
   network_id: 'testnet'; receiver_id: string; asset: 'NEAR'; amount_yocto: string;
 };
-export type OrderDetails = Order & { payment: PaymentDetails | null; transaction_hash: string | null };
+export type OrderDetails = Order & { payment: PaymentDetails | null; transaction_hash: string | null; policy_error: string };
 export type PaymentVerification = {
   verified: true; order_id: string; transaction_hash: string;
   sender_id: string; network_id: 'testnet'; order_status: 'paid';
@@ -26,6 +26,9 @@ const errors: Record<string, string> = {
   invalid_request: 'Check your request and budget.',
   product_not_found: 'The selected product is no longer available.',
   budget_exceeded: 'The selected purchase exceeds your budget.',
+  policy_order_limit: 'The total exceeds your saved purchase limit.',
+  policy_unit_limit: 'The unit price exceeds your saved unit price limit.',
+  policy_merchant: 'The merchant is not allowed by your saved rules.',
   no_matching_product: 'No matching product was found in the catalog.',
   invalid_model_response: 'The assistant returned an invalid selection. Please try again.',
   model_unavailable: 'The assistant is unavailable. Please try again later.',
@@ -42,6 +45,10 @@ const errors: Record<string, string> = {
   rpc_unavailable: 'Payment verification is unavailable. Keep the transaction hash and check again.',
   rpc_timeout: 'Verification timed out. Check the same payment again; do not send another transfer.',
 };
+
+export function policyMessage(code: string) {
+  return errors[code] ?? 'Purchase rules could not be checked. Refresh the order.';
+}
 
 export class ApiError extends Error {
   readonly code: string;

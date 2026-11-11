@@ -11,7 +11,7 @@ function storage() {
 
 const payment = { network_id: 'testnet', receiver_id: 'merchant.testnet',
   asset: 'NEAR', amount_yocto: '2000000000000000000000001' };
-const order = { status: 'pending_payment', payment, quantity: 1,
+const order = { status: 'pending_payment', policy_error: '', payment, quantity: 1,
   unit_price_yocto: payment.amount_yocto, total_yocto: payment.amount_yocto,
   budget_yocto: '3000000000000000000000000' };
 
@@ -49,6 +49,7 @@ test('cash details remain exact and reject the wrong network, currency or amount
     assert.throws(() => payableDetails({ ...order, payment: { ...payment, ...change } }));
   }
   for (const change of [{ status: 'paid' }, { payment: null }, { total_yocto: '1e24' },
+    { policy_error: 'policy_merchant' }, { policy_error: undefined },
     { budget_yocto: '1' }, { quantity: 2 }, { unit_price_yocto: '1' },
     { total_yocto: '9'.repeat(39), payment: { ...payment, amount_yocto: '9'.repeat(39) } }]) {
     assert.throws(() => payableDetails({ ...order, ...change }));

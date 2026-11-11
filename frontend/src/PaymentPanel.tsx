@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, getOrder } from './api';
+import { ApiError, getOrder, policyMessage } from './api';
 import type { OrderDetails } from './api';
 import { fromYocto } from './amounts';
 import { checkPayment, PaymentRecoveryError, resetUnknownPayment, startPayment } from './paymentFlow';
@@ -126,7 +126,9 @@ export default function PaymentPanel({ orderId, accountId, token, onPaid }: Prop
         <strong>{details.payment.receiver_id}</strong>. The network fee is additional.
       </p>}
       {details && !details.payment && <p>Payment is unavailable for this order.</p>}
-      {!loading && details?.payment && !attempt && <button type="button" disabled={disabled}
+      {details && !attempt && details.policy_error !== '' &&
+        <p className="error" role="alert">{policyMessage(details.policy_error)}</p>}
+      {!loading && details?.payment && !attempt && details.policy_error === '' && <button type="button" disabled={disabled}
         onClick={() => { void run('pay'); }}>Pay {fromYocto(details.total_yocto)} test NEAR</button>}
       {attempt?.hash && <>
         <small>Transaction: {attempt.hash}</small>

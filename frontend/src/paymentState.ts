@@ -1,4 +1,5 @@
 import type { OrderDetails, PaymentDetails } from './api';
+import { policyMessage } from './api.ts';
 import type { SignAndSendTransactionParams } from '@hot-labs/near-connect';
 
 export type Attempt = { hash: string | null };
@@ -47,6 +48,8 @@ export function clearAttempt(account: string, id: string, storage = paymentStora
 }
 
 export function payableDetails(order: OrderDetails): PaymentDetails {
+  if (typeof order.policy_error !== 'string' || order.policy_error !== '')
+    throw new Error(policyMessage(order.policy_error));
   const payment = order.payment;
   const amount = (value: unknown) => typeof value === 'string' && /^[1-9][0-9]{0,38}$/.test(value);
   if (order.status !== 'pending_payment' || !payment || payment.network_id !== 'testnet' ||
