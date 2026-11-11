@@ -13,7 +13,7 @@ export default function App() {
   const { session, busy: walletBusy } = useWallet();
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [view, setView] = useState<'purchase' | 'orders'>('purchase');
+  const [view, setView] = useState<'purchase' | 'orders' | 'order'>('purchase');
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('0.03');
@@ -30,7 +30,7 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    if (view !== 'purchase' || !order?.id || !session) return;
+    if (view === 'orders' || !order?.id || !session) return;
     let active = true;
     const version = requestVersion.current;
     getOrder(order.id, session.token).then((saved) => {
@@ -48,6 +48,7 @@ export default function App() {
     setOrder(null);
     setError('');
     setBusy(false);
+    if (!session) setView((current) => current === 'order' ? 'orders' : current);
     return () => { ++requestVersion.current; };
   }, [session?.token]);
 
@@ -91,15 +92,16 @@ export default function App() {
       <header>
         <p className="eyebrow">Community Treasury · NEAR Testnet</p>
         <h1 ref={heading} tabIndex={-1}>
-          {view === 'orders' ? 'Your orders.' : 'A purchase within your budget.'}
+          {view === 'orders' ? 'Your orders.' : view === 'order' ? 'Order details.' : 'A purchase within your budget.'}
         </h1>
         <p>{view === 'orders' ? 'Review your purchases and payment statuses.'
+          : view === 'order' ? 'Review your order and payment details.'
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel ordersOpen={view === 'orders'}
+      <WalletPanel navigationLabel={view === 'order' ? '← Back to orders' : view === 'orders' ? '← Back to purchase' : 'Orders'}
         onToggleView={() => setView((current) => current === 'orders' ? 'purchase' : 'orders')} />
-      {session && <PolicyPanel key={session.token} token={session.token} budget={budget}
+      {session && view !== 'order' && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
       {view === 'orders' ? <>
@@ -109,10 +111,11 @@ export default function App() {
             setBusy(false);
             setOrder(saved);
             setError('');
-            setView('purchase');
+            setView('order');
           }} />
           : <p>Connect your wallet and verify ownership to see your orders.</p>}
       </> : <>
+      {view === 'purchase' && <>
       {!session && <p>Connect your wallet and verify ownership to create an order.</p>}
 
       <form onSubmit={submit}>
@@ -137,6 +140,7 @@ export default function App() {
 
       {loading && <p role="status">Loading catalog…</p>}
       {!loading && !error && products.length === 0 && <p>No products are available.</p>}
+      </>}
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
         {order && <article>
