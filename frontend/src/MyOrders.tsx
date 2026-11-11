@@ -37,27 +37,24 @@ export default function MyOrders({ token, products, revision, onReview }: Props)
     {loading && <p role="status">Loading your orders…</p>}
     {error && <p className="error" role="alert">{error}</p>}
     {!loading && !error && orders.length === 0 && <p>No orders linked to this account yet.</p>}
-    {orders.length > 0 && <div className="orders-scroll">
-      <table className="orders-table">
-        <thead><tr>
-          <th scope="col">Product / order</th><th scope="col">Quantity</th>
-          <th scope="col">Unit price</th><th scope="col">Total</th><th scope="col">Status</th>
-          <th scope="col">Action</th>
-        </tr></thead>
-        <tbody>{orders.map((order) => <tr key={order.id}>
-          <td>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}
-            <small>{order.id}</small></td>
-          <td>{order.quantity}</td>
-          <td className="amount">{fromYocto(order.unit_price_yocto)} test NEAR</td>
-          <td className="amount">{fromYocto(order.total_yocto)} test NEAR</td>
-          <td><span className={`order-status ${order.status}`}>
+    {orders.length > 0 && <ul className="orders-list">
+      {orders.map((order) => <li key={order.id} className="order-item">
+        <div className="order-item-header">
+          <strong>{products.find((product) => product.id === order.product_id)?.name ?? order.product_id}</strong>
+          <span className={`order-status ${order.status}`}>
             {order.status === 'paid' ? 'Paid' : 'Awaiting payment'}
-          </span></td>
-          <td><button className="secondary-button" type="button" onClick={() => onReview(order)}>
-            {order.status === 'paid' ? 'View' : 'Review & pay'}
-          </button></td>
-        </tr>)}</tbody>
-      </table>
-    </div>}
+          </span>
+        </div>
+        <small>Order: {order.id}</small>
+        <dl className="order-metrics">
+          <div><dt>Quantity</dt><dd>{order.quantity}</dd></div>
+          <div><dt>Unit price</dt><dd>{fromYocto(order.unit_price_yocto)} test NEAR</dd></div>
+          <div><dt>Total</dt><dd>{fromYocto(order.total_yocto)} test NEAR</dd></div>
+        </dl>
+        <button className="secondary-button" type="button" onClick={() => onReview(order)}>
+          {order.status === 'paid' ? 'View' : 'Review & pay'}
+        </button>
+      </li>)}
+    </ul>}
   </section>;
 }
