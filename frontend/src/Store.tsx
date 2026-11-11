@@ -1,95 +1,113 @@
-import { useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
-import { suggestProduct } from './api';
+import { useMemo, useState } from 'react';
 import type { CartItem, Product } from './api';
 import { fromYocto } from './amounts';
+import { filterProducts, storePage } from './storeCatalog';
+import type { StoreSort } from './storeCatalog';
+import StoreAssistant from './StoreAssistant';
 
 type Props = { products: Product[]; loading: boolean; error: string; onRefresh: () => void;
   cart: CartItem[]; token: string; onAdd: (product: Product, quantity: number) => void; onCart: () => void };
 
 export default function Store({ products, loading, error, onRefresh, cart, token, onAdd, onCart }: Props) {
-  const [prompt, setPrompt] = useState('');
-  const [suggestion, setSuggestion] = useState<CartItem | null>(null);
-  const [suggestionError, setSuggestionError] = useState('');
-  const [thinking, setThinking] = useState(false);
-  const requestVersion = useRef(0);
-  useEffect(() => {
-    setSuggestion(null);
-    setSuggestionError('');
-    setThinking(false);
-    return () => { ++requestVersion.current; };
-  }, [token]);
-  const selected = products.find((product) => product.id === suggestion?.product_id);
-  const selectedQuantity = cart.find((item) => item.product_id === selected?.id)?.quantity ?? 0;
-  const canAddSelection = !!selected && !!suggestion && selectedQuantity + suggestion.quantity <= 1000 &&
-    (selectedQuantity > 0 || cart.length < 20);
-  async function suggest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token || thinking) return;
-    const version = ++requestVersion.current;
-    setThinking(true);
-    setSuggestion(null);
-    setSuggestionError('');
-    try {
-      const result = await suggestProduct(token, prompt.trim());
-      if (requestVersion.current === version) setSuggestion(result);
-    } catch (reason) {
-      if (requestVersion.current === version)
-        setSuggestionError(reason instanceof Error ? reason.message : 'The assistant is unavailable.');
-    } finally { if (requestVersion.current === version) setThinking(false); }
-  }
-  const merchants = [...new Map(products.map((p) => [p.merchant_id, p.merchant_name])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1]));
+  const [query, setQuery] = useState('');
+  const [merchant, setMerchant] = useState('all');
+  const [configuredOnly, setConfiguredOnly] = useState(false);
+  const [sort, setSort] = useState<StoreSort>('name');
+  const [page, setPage] = useState(1);
+  const merchants = useMemo(() => [...new Map(products.map((p) => [p.merchant_id, p.merchant_name])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1])), [products]);
+  const filtered = useMemo(() => filterProducts(products, { query, merchant, configuredOnly, sort }),
+    [products, query, merchant, configuredOnly, sort]);
+  const results = storePage(filtered, page, 9);
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-  return <section aria-labelledby="store-title" aria-busy={loading}>
-    <div className="wallet-controls">
-      <div>
-        <h2 id="store-title">Demo catalog</h2>
-        {!loading && !error && <small>{products.length} products · Prices in test NEAR</small>}
+  const activeFilters = !!query.trim() || merchant !== 'all' || configuredOnly;
+  function clearFilters() { setQuery(''); setMerchant('all'); setConfiguredOnly(false); setSort('name'); setPage(1); }
+
+  return <section className="marketplace" aria-labelledby="store-title" aria-busy={loading}>
+    <div className="marketplace-heading">
+      <div><span className="marketplace-kicker">THE MARKETPLACE <span aria-hidden="true">/</span> TESTNET</span>
+        <h2 id="store-title">Find your essentials.</h2>
+        <p>Browse products from independent demo merchants.</p></div>
+      <button className="marketplace-cart" type="button" onClick={onCart}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <path d="M4 7h16l-1 13H5L4 7Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+        </svg>
+        Cart <span className="cart-count" aria-label={`${count} items`}>{count}</span>
+      </button>
+    </div>
+
+    <StoreAssistant products={products} cart={cart} token={token} disabled={loading || !!error} onAdd={onAdd} />
+
+    <div className="marketplace-toolbar">
+      <div className="marketplace-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/>
+        </svg>
+        <label className="visually-hidden" htmlFor="store-search">Search products or merchants</label>
+        <input id="store-search" type="search" value={query} placeholder="Search products or merchants"
+          onChange={(event) => { setQuery(event.target.value); setPage(1); }} />
       </div>
-      <div className="store-actions">
-        <button className="secondary-button store-refresh" type="button" disabled={loading} onClick={onRefresh}>Refresh</button>
-        <button type="button" onClick={onCart}>Cart{count > 0 && ` (${count})`}</button>
+      <div className="marketplace-sort">
+        <label htmlFor="store-sort">Sort by</label>
+        <select id="store-sort" value={sort} onChange={(event) => { setSort(event.target.value as StoreSort); setPage(1); }}>
+          <option value="name">Name</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option>
+        </select>
       </div>
     </div>
-    {loading && <p role="status">Loading products…</p>}
+
+    <div className="merchant-filters" role="group" aria-label="Filter by merchant">
+      <span className="filter-label">SHOPS</span>
+      <button type="button" className="merchant-filter" aria-pressed={merchant === 'all'}
+        onClick={() => { setMerchant('all'); setPage(1); }}>All <span>{products.length}</span></button>
+      {merchants.map(([id, name]) => <button type="button" className="merchant-filter" key={id} aria-pressed={merchant === id}
+        onClick={() => { setMerchant(id); setPage(1); }}>{name} <span>{products.filter((p) => p.merchant_id === id).length}</span></button>)}
+    </div>
+
+    <div className="marketplace-results">
+      <p role="status">{loading ? 'Loading products…' : error ? 'Could not load products.' :
+        `${filtered.length} ${filtered.length === 1 ? 'product' : 'products'}${activeFilters ? ' found' : ''}`}</p>
+      <div className="marketplace-result-actions">
+        <label className="store-ready"><input type="checkbox" checked={configuredOnly}
+          onChange={(event) => { setConfiguredOnly(event.target.checked); setPage(1); }} /> Payment configured</label>
+        <button className="store-text-button" type="button" disabled={loading} onClick={onRefresh}>Refresh</button>
+      </div>
+    </div>
     {error && <p className="error" role="alert">{error}</p>}
-    {!loading && !error && products.length === 0 && <p>No products are available.</p>}
-    <form className="store-assistant" onSubmit={suggest}>
-      <label htmlFor="store-prompt">Ask the assistant</label>
-      <small>Describe one product; review the selection before adding it to the cart.</small>
-      <textarea id="store-prompt" value={prompt} rows={2} maxLength={2000} required disabled={thinking}
-        onChange={(event) => { setPrompt(event.target.value); setSuggestion(null); }} />
-      {!token && <small>Connect and verify your wallet to use the assistant.</small>}
-      <button type="submit" disabled={!token || thinking || loading || !!error}>
-        {thinking ? 'Finding a product…' : 'Find a product'}
-      </button>
-      {suggestionError && <p className="error" role="alert">{suggestionError}</p>}
-      {suggestion && <div className="store-suggestion" role="status">
-        {selected ? <><strong>{selected.name}</strong><small>{selected.merchant_name} · Qty {suggestion.quantity} · {fromYocto(selected.price_yocto)} test NEAR each</small>
-          <button className="secondary-button" type="button" disabled={!canAddSelection}
-            onClick={() => { onAdd(selected, suggestion.quantity); setSuggestion(null); }}>Add selection</button>
-          {!canAddSelection && <small>Cart quantity or product limit reached.</small>}</>
-          : <p>This product is no longer available. Refresh the catalog.</p>}
-      </div>}
-    </form>
     {cart.length >= 20 && <small>A cart can contain up to 20 different products.</small>}
-    {!loading && !error && merchants.map(([id, name]) => <section key={id} className="store-merchant">
-      <h3>{name}</h3>
-      {!products.find((product) => product.merchant_id === id)?.merchant_ready &&
-        <small>Payment setup needed before ordering from this merchant.</small>}
+    {!loading && !error && filtered.length === 0 && <div className="store-empty">
+      <strong>{products.length === 0 ? 'No products yet' : 'No matching products'}</strong>
+      <p>{products.length === 0 ? 'The catalog is currently empty.' : 'Try another search or clear your filters.'}</p>
+      {activeFilters && <button className="secondary-button" type="button" onClick={clearFilters}>Clear filters</button>}
+    </div>}
+    {!loading && !error && results.items.length > 0 && <>
       <ul className="store-grid">
-        {products.filter((product) => product.merchant_id === id).map((product) => <li className="store-product" key={product.id}>
-          <strong>{product.name}</strong>
-          <div className="store-product-footer">
-            <div><small>Price</small><span>{fromYocto(product.price_yocto)} test NEAR</span></div>
-            <button className="secondary-button store-add" type="button"
-              disabled={(cart.find((item) => item.product_id === product.id)?.quantity ?? 0) >= 1000 ||
-                (cart.length >= 20 && !cart.some((item) => item.product_id === product.id))}
-              aria-label={`Add ${product.name} to cart`} onClick={() => onAdd(product, 1)}>Add</button>
-          </div>
-        </li>)}
+        {results.items.map((product) => {
+          const quantity = cart.find((item) => item.product_id === product.id)?.quantity ?? 0;
+          const initials = product.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase();
+          return <li className="store-product" key={product.id}>
+            <div className="store-product-art" aria-hidden="true"><span>{initials}</span><i /></div>
+            <div className="store-product-body">
+              <small className="store-product-merchant">{product.merchant_name}</small>
+              <strong className="store-product-name">{product.name}</strong>
+              {!product.merchant_ready && <small className="store-product-setup">Payment setup needed</small>}
+              <div className="store-product-footer"><div><small>Price</small><span>{fromYocto(product.price_yocto)} <small>test NEAR</small></span></div>
+                <button className="store-add" type="button" disabled={quantity >= 1000 || (cart.length >= 20 && !quantity)}
+                  aria-label={`Add ${product.name} from ${product.merchant_name} to cart`} onClick={() => onAdd(product, 1)}>
+                  <span aria-hidden="true">+</span> Add
+                </button>
+              </div>
+              {quantity > 0 && <small className="store-in-cart">{quantity} in cart</small>}
+            </div>
+          </li>;
+        })}
       </ul>
-    </section>)}
+      {results.totalPages > 1 && <nav className="store-pagination" aria-label="Product pages">
+        <button className="secondary-button" type="button" disabled={results.currentPage === 1}
+          onClick={() => setPage(results.currentPage - 1)}>← Previous</button>
+        <span>Page {results.currentPage} of {results.totalPages}</span>
+        <button className="secondary-button" type="button" disabled={results.currentPage === results.totalPages}
+          onClick={() => setPage(results.currentPage + 1)}>Next →</button>
+      </nav>}
+    </>}
   </section>;
 }
