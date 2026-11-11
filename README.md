@@ -80,6 +80,10 @@ colima stop
 
 Click **Connect wallet**, choose a Testnet-compatible wallet, and approve the connection. The UI shows its account ID, restores the connection after a page reload, and offers **Disconnect**. Use the same browser and `localhost:5173` origin when checking restoration. Integration uses [NEAR Connect](https://docs.near.org/tools/near-connect); the browser needs internet access for the wallet manifest and provider.
 
+The wallet panel shows the connected account's NEAR Testnet balance from RPC.
+It refreshes after a confirmed payment or via **Refresh**. This balance includes
+the storage reserve; the spendable amount also needs to cover network fees.
+
 If you do not have a Testnet account yet, create one in the selected wallet first. This does not configure the merchant recipient; that separate account will be set up before payments.
 
 Click **Verify ownership** and approve the sign-in message to authenticate the connected account. The backend checks the NEP-413 signature and the account's FullAccess key through Testnet RPC. This does not transfer funds. Authentication requires the latest database migration; see [API and checks](docs/AUTH.md). The tab keeps its token in `sessionStorage`; reload restores verification only after the backend validates the session for the connected account. Reload does not extend the one-hour expiry. Disconnect revokes the session and clears the saved token.

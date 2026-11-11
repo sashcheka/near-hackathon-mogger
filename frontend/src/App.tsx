@@ -99,7 +99,7 @@ export default function App() {
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
-      <WalletPanel navigationLabel={view === 'order' ? '← Back to orders' : view === 'orders' ? '← Back to purchase' : 'Orders'}
+      <WalletPanel balanceRevision={ordersRevision} navigationLabel={view === 'order' ? '← Back to orders' : view === 'orders' ? '← Back to purchase' : 'Orders'}
         onToggleView={() => setView((current) => current === 'orders' ? 'purchase' : 'orders')} />
       {session && view !== 'order' && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}

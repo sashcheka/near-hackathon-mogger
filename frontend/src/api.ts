@@ -35,6 +35,7 @@ const errors: Record<string, string> = {
   policy_order_limit: 'The total exceeds your saved purchase limit.',
   policy_unit_limit: 'The unit price exceeds your saved unit price limit.',
   policy_merchant: 'The merchant is not allowed by your saved rules.',
+  balance_unavailable: 'Wallet balance is unavailable. Try refreshing.',
   no_matching_product: 'No matching product was found in the catalog.',
   invalid_model_response: 'The assistant returned an invalid selection. Please try again.',
   model_unavailable: 'The assistant is unavailable. Please try again later.',
@@ -82,6 +83,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
+
+export async function getWalletBalance(accountId: string) {
+  const result = await request<{ account_id: string; network_id: string; amount_yocto: string }>(
+    `/wallets/${encodeURIComponent(accountId)}/balance`);
+  if (result.account_id !== accountId || result.network_id !== 'testnet' ||
+      typeof result.amount_yocto !== 'string' || !/^(0|[1-9][0-9]{0,38})$/.test(result.amount_yocto))
+    throw new Error('Wallet balance could not be verified. Try refreshing.');
+  return result.amount_yocto;
+}
 
 export const getPolicy = (token: string) => request<PurchasePolicy>('/purchase-policy/settings', {
   headers: { Authorization: `Bearer ${token}` },

@@ -1,8 +1,9 @@
 import { useWallet } from './WalletProvider';
+import WalletBalance from './WalletBalance';
 
-type Props = { navigationLabel: string; onToggleView: () => void };
+type Props = { navigationLabel: string; onToggleView: () => void; balanceRevision: number };
 
-export default function WalletPanel({ navigationLabel, onToggleView }: Props) {
+export default function WalletPanel({ navigationLabel, onToggleView, balanceRevision }: Props) {
   const { accountId, ready, busy, error, session, authenticate, connect, disconnect } = useWallet();
   return <section className="wallet-panel" aria-label="NEAR Testnet wallet" aria-busy={busy}>
     <div className="wallet-controls">
@@ -24,6 +25,7 @@ export default function WalletPanel({ navigationLabel, onToggleView }: Props) {
       </button>
       </div>
     </div>
+    {accountId && <WalletBalance accountId={accountId} revision={balanceRevision} />}
     {error && <p className="error" role="alert">{error}</p>}
   </section>;
 }
