@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createPurchase, getOrder, getProducts } from './api';
-import type { Order, Product } from './api';
+import { createPurchase, getCheckout, getOrder, getProducts } from './api';
+import type { CartItem, Checkout, Order, Product } from './api';
 import { fromYocto, toYocto } from './amounts';
 import WalletPanel from './WalletPanel';
 import { useWallet } from './WalletProvider';
@@ -9,18 +9,23 @@ import MyOrders from './MyOrders';
 import PaymentPanel from './PaymentPanel';
 import PolicyPanel from './PolicyPanel';
 import Store from './Store';
+import Cart from './Cart';
+import CheckoutDetails from './CheckoutDetails';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [view, setView] = useState<'purchase' | 'orders' | 'order' | 'store'>('purchase');
-  const [orderReturnView, setOrderReturnView] = useState<'purchase' | 'orders'>('orders');
+  const [view, setView] = useState<'purchase' | 'orders' | 'order' | 'store' | 'cart' | 'checkout'>('purchase');
+  const [orderReturnView, setOrderReturnView] = useState<'purchase' | 'orders' | 'checkout'>('orders');
+  const [checkoutReturnView, setCheckoutReturnView] = useState<'store' | 'orders'>('orders');
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('0.03');
   const [products, setProducts] = useState<Product[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkout, setCheckout] = useState<Checkout | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,10 +54,20 @@ export default function App() {
   }, [view, order?.id, session?.token]);
 
   useEffect(() => {
+    if (view !== 'checkout' || !checkout?.id || !session) return;
+    let active = true;
+    getCheckout(session.token, checkout.id).then((saved) => {
+      if (active) setCheckout(saved);
+    }).catch((reason: Error) => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [view, checkout?.id, session?.token]);
+
+  useEffect(() => {
     setOrder(null);
+    setCheckout(null);
     setError('');
     setBusy(false);
-    if (!session) setView((current) => current === 'order' ? 'orders' : current);
+    if (!session) setView((current) => current === 'order' || current === 'checkout' ? 'orders' : current);
     return () => { ++requestVersion.current; };
   }, [session?.token]);
 
@@ -100,12 +115,13 @@ export default function App() {
       <header>
         <p className="eyebrow">Community Treasury · NEAR Testnet</p>
         <h1 ref={heading} tabIndex={-1}>
-          {view === 'orders' ? 'Your orders.' : view === 'order' ? 'Order details.'
-            : view === 'store' ? 'Explore the store.' : 'A purchase within your budget.'}
+          {view === 'orders' ? 'Your orders.' : view === 'order' || view === 'checkout' ? 'Order details.'
+            : view === 'store' ? 'Explore the store.' : view === 'cart' ? 'Your cart.' : 'A purchase within your budget.'}
         </h1>
         <p>{view === 'orders' ? 'Review your purchases and payment statuses.'
-          : view === 'order' ? 'Review your order and payment details.'
+          : view === 'order' || view === 'checkout' ? 'Review your order and payment details.'
           : view === 'store' ? 'Browse the demo products available to the assistant.'
+          : view === 'cart' ? 'Review products and set a budget before ordering.'
           : 'Describe what you need. Review the assistant’s selection before paying.'}</p>
       </header>
 
@@ -119,21 +135,37 @@ export default function App() {
           setView('store');
         } : undefined}
         navigationLabel={view === 'order'
-        ? (orderReturnView === 'orders' ? '← Back to orders' : '← Back to purchase')
-        : view === 'orders' || view === 'store' ? '← Back to purchase' : 'Orders'}
+        ? (orderReturnView === 'checkout' ? '← Back to order' : orderReturnView === 'orders' ? '← Back to orders' : '← Back to purchase')
+        : view === 'checkout' ? (checkoutReturnView === 'orders' ? '← Back to orders' : '← Back to store')
+        : view === 'cart' ? '← Back to store' : view === 'orders' || view === 'store' ? '← Back to purchase' : 'Orders'}
         onToggleView={() => {
           ++requestVersion.current;
           setBusy(false);
           setError('');
           setOrder(null);
-          setView((current) => current === 'order' ? orderReturnView
-            : current === 'orders' || current === 'store' ? 'purchase' : 'orders');
+          setView((current) => current === 'order' ? orderReturnView : current === 'checkout' ? checkoutReturnView
+            : current === 'cart' ? 'store' : current === 'orders' || current === 'store' ? 'purchase' : 'orders');
         }} />
-      {session && view !== 'order' && view !== 'store' && <PolicyPanel key={session.token} token={session.token} budget={budget}
+      {session && (view === 'purchase' || view === 'orders') && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
-      {view === 'store' ? <Store products={products} loading={loading} error={catalogError}
-        onRefresh={() => setCatalogRevision((revision) => revision + 1)} /> : view === 'orders' ? <>
+      {view === 'store' ? <Store products={products} loading={loading} error={catalogError} cart={cart}
+        onRefresh={() => setCatalogRevision((revision) => revision + 1)} onCart={() => setView('cart')}
+        onAdd={(product) => setCart((items) => items.some((item) => item.product_id === product.id)
+          ? items.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + 1, 1000) } : item)
+          : items.length < 20 ? [...items, { product_id: product.id, quantity: 1 }] : items)} />
+      : view === 'cart' ? <Cart key={session?.account_id ?? 'guest'} products={products} cart={cart} setCart={setCart}
+        accountId={session?.account_id ?? ''} token={session?.token ?? ''} budget={budget} setBudget={setBudget}
+        onCreated={(saved) => { setCheckout(saved); setCheckoutReturnView('store'); setView('checkout');
+          setOrdersRevision((revision) => revision + 1); }} />
+      : view === 'checkout' && session && checkout ? <CheckoutDetails key={checkout.id} checkout={checkout}
+        accountId={session.account_id} token={session.token} onUpdate={setCheckout}
+        onPaid={() => setOrdersRevision((revision) => revision + 1)} onReview={(item) => {
+          setOrder({ id: item.order_id, product_id: item.product_id, quantity: item.quantity,
+            unit_price_yocto: item.unit_price_yocto, total_yocto: item.total_yocto,
+            budget_yocto: checkout.budget_yocto, status: item.status });
+          setOrderReturnView('checkout'); setError(''); setView('order');
+        }} /> : view === 'orders' ? <>
         {session ? <MyOrders key={session.token} token={session.token}
           products={products} revision={ordersRevision} onReview={(saved) => {
             ++requestVersion.current;
@@ -142,7 +174,7 @@ export default function App() {
             setOrderReturnView('orders');
             setError('');
             setView('order');
-          }} />
+          }} onCheckout={(saved) => { setCheckout(saved); setCheckoutReturnView('orders'); setError(''); setView('checkout'); }} />
           : <p>Connect your wallet and verify ownership to see your orders.</p>}
       </> : <>
       {view === 'purchase' && <>
