@@ -153,7 +153,9 @@ export default function App() {
         onRefresh={() => setCatalogRevision((revision) => revision + 1)} onCart={() => setView('cart')}
         onAdd={(product, quantity) => setCart((items) => items.some((item) => item.product_id === product.id)
           ? items.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + quantity, 1000) } : item)
-          : items.length < 20 ? [...items, { product_id: product.id, quantity }] : items)} />
+          : items.length < 20 ? [...items, { product_id: product.id, quantity }] : items)}
+        onDecrease={(product) => setCart((items) => items.map((item) => item.product_id === product.id
+          ? { ...item, quantity: item.quantity - 1 } : item).filter((item) => item.quantity > 0))} />
       : view === 'cart' ? <Cart key={session?.account_id ?? 'guest'} products={products} cart={cart} setCart={setCart}
         accountId={session?.account_id ?? ''} token={session?.token ?? ''} budget={budget} setBudget={setBudget}
         onCreated={(saved) => { setCheckout(saved); setCheckoutReturnView('store'); setView('checkout');

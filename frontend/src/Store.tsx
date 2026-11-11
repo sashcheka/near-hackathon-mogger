@@ -6,9 +6,10 @@ import type { StoreSort } from './storeCatalog';
 import StoreAssistant from './StoreAssistant';
 
 type Props = { products: Product[]; loading: boolean; error: string; onRefresh: () => void;
-  cart: CartItem[]; token: string; onAdd: (product: Product, quantity: number) => void; onCart: () => void };
+  cart: CartItem[]; token: string; onAdd: (product: Product, quantity: number) => void;
+  onDecrease: (product: Product) => void; onCart: () => void };
 
-export default function Store({ products, loading, error, onRefresh, cart, token, onAdd, onCart }: Props) {
+export default function Store({ products, loading, error, onRefresh, cart, token, onAdd, onDecrease, onCart }: Props) {
   const [query, setQuery] = useState('');
   const [merchant, setMerchant] = useState('all');
   const [configuredOnly, setConfiguredOnly] = useState(false);
@@ -87,16 +88,20 @@ export default function Store({ products, loading, error, onRefresh, cart, token
           return <li className="store-product" key={product.id}>
             <div className="store-product-art" aria-hidden="true"><span>{initials}</span><i /></div>
             <div className="store-product-body">
-              <small className="store-product-merchant">{product.merchant_name}</small>
+              <small className="store-product-merchant">Sold by <strong>{product.merchant_name}</strong></small>
               <strong className="store-product-name">{product.name}</strong>
               {!product.merchant_ready && <small className="store-product-setup">Payment setup needed</small>}
               <div className="store-product-footer"><div><small>Price</small><span>{fromYocto(product.price_yocto)} <small>test NEAR</small></span></div>
-                <button className="store-add" type="button" disabled={quantity >= 1000 || (cart.length >= 20 && !quantity)}
+                {quantity === 0 ? <button className="store-add" type="button" disabled={cart.length >= 20}
                   aria-label={`Add ${product.name} from ${product.merchant_name} to cart`} onClick={() => onAdd(product, 1)}>
                   <span aria-hidden="true">+</span> Add
-                </button>
+                </button> : <div className="store-quantity" role="group" aria-label={`Quantity of ${product.name} from ${product.merchant_name}`}>
+                  <button type="button" aria-label={`Decrease quantity of ${product.name}`} onClick={() => onDecrease(product)}>−</button>
+                  <output aria-live="polite">{quantity}</output>
+                  <button type="button" aria-label={`Increase quantity of ${product.name}`} disabled={quantity >= 1000}
+                    onClick={() => onAdd(product, 1)}>+</button>
+                </div>}
               </div>
-              {quantity > 0 && <small className="store-in-cart">{quantity} in cart</small>}
             </div>
           </li>;
         })}

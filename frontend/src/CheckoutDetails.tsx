@@ -66,7 +66,7 @@ export default function CheckoutDetails({ checkout, accountId, token, onUpdate, 
       {merchants.map(([id, name]) => <li className="order-item" key={id}>
         <h3>{name}</h3>
         {checkout.items.filter((item) => item.merchant_id === id).map((item) => <div className="checkout-item" key={item.order_id}>
-          <div><strong>{item.product_name}</strong><small>Qty {item.quantity} · {fromYocto(item.unit_price_yocto)} test NEAR each</small>
+          <div className="checkout-product"><strong title={item.product_name} tabIndex={0}>{item.product_name}</strong><small>Qty {item.quantity} · {fromYocto(item.unit_price_yocto)} test NEAR each</small>
             <small>To {item.receiver_id}</small></div>
           <div className="order-total"><strong>{fromYocto(item.total_yocto)} test NEAR</strong>
             <span className={`order-status ${item.status}`}>{item.status === 'paid' ? 'Paid' : 'Awaiting payment'}</span></div>
