@@ -11,14 +11,21 @@ import PolicyPanel from './PolicyPanel';
 import Store from './Store';
 import Cart from './Cart';
 import CheckoutDetails from './CheckoutDetails';
+import { parseRoute } from './routes';
 
 export default function App() {
   const { session, busy: walletBusy } = useWallet();
   const requestVersion = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [view, setView] = useState<'purchase' | 'orders' | 'order' | 'store' | 'cart' | 'checkout'>('purchase');
-  const [orderReturnView, setOrderReturnView] = useState<'purchase' | 'orders' | 'checkout'>('orders');
-  const [checkoutReturnView, setCheckoutReturnView] = useState<'store' | 'orders'>('orders');
+  const [route, setRoute] = useState(() => parseRoute(window.location.pathname));
+  const { view } = route;
+  const savedReturn = window.history.state?.returnPath;
+  const returnPath = typeof savedReturn === 'string' && parseRoute(savedReturn).view !== 'not-found' ? savedReturn : '/orders';
+  function navigate(path: string, from?: string) {
+    if (path === window.location.pathname) return;
+    window.history.pushState(from ? { returnPath: from } : {}, '', path);
+    setRoute(parseRoute(path));
+  }
   const previousView = useRef(view);
   const [prompt, setPrompt] = useState('Buy one pack of toilet paper');
   const [budget, setBudget] = useState('0.03');
@@ -34,15 +41,28 @@ export default function App() {
   const [ordersRevision, setOrdersRevision] = useState(0);
 
   useEffect(() => {
+    function onPopState() {
+      ++requestVersion.current;
+      setBusy(false);
+      setError('');
+      setRoute(parseRoute(window.location.pathname));
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
     if (previousView.current !== view) heading.current?.focus();
     previousView.current = view;
   }, [view]);
 
   useEffect(() => {
-    if (view !== 'order' || !order?.id || !session) return;
+    if (view !== 'order' || !route.id || !session) return;
     let active = true;
     const version = requestVersion.current;
-    getOrder(order.id, session.token).then((saved) => {
+    setOrder(null);
+    setError('');
+    getOrder(route.id, session.token).then((saved) => {
       if (active && requestVersion.current === version) setOrder(saved);
     }).catch((error: Error) => {
       if (active && requestVersion.current === version) {
@@ -51,23 +71,24 @@ export default function App() {
       }
     });
     return () => { active = false; };
-  }, [view, order?.id, session?.token]);
+  }, [view, route.id, session?.token]);
 
   useEffect(() => {
-    if (view !== 'checkout' || !checkout?.id || !session) return;
+    if (view !== 'checkout' || !route.id || !session) return;
     let active = true;
-    getCheckout(session.token, checkout.id).then((saved) => {
+    setCheckout(null);
+    setError('');
+    getCheckout(session.token, route.id).then((saved) => {
       if (active) setCheckout(saved);
     }).catch((reason: Error) => { if (active) setError(reason.message); });
     return () => { active = false; };
-  }, [view, checkout?.id, session?.token]);
+  }, [view, route.id, session?.token]);
 
   useEffect(() => {
     setOrder(null);
     setCheckout(null);
     setError('');
     setBusy(false);
-    if (!session) setView((current) => current === 'order' || current === 'checkout' ? 'orders' : current);
     return () => { ++requestVersion.current; };
   }, [session?.token]);
 
@@ -97,8 +118,7 @@ export default function App() {
       const created = await createPurchase(prompt.trim(), amount, session.token);
       if (requestVersion.current === version) {
         setOrder(created);
-        setOrderReturnView('purchase');
-        setView('order');
+        navigate(`/orders/${created.id}`, '/');
         setOrdersRevision((revision) => revision + 1);
       }
     } catch (error) {
@@ -132,25 +152,27 @@ export default function App() {
           setError('');
           setOrder(null);
           setCatalogRevision((revision) => revision + 1);
-          setView('store');
+          navigate('/store');
         } : undefined}
         navigationLabel={view === 'order'
-        ? (orderReturnView === 'checkout' ? '← Back to order' : orderReturnView === 'orders' ? '← Back to orders' : '← Back to purchase')
-        : view === 'checkout' ? (checkoutReturnView === 'orders' ? '← Back to orders' : '← Back to store')
+        ? (returnPath.startsWith('/checkouts/') ? '← Back to order' : returnPath === '/orders' ? '← Back to orders' : '← Back to purchase')
+        : view === 'checkout' ? (returnPath === '/store' ? '← Back to store' : '← Back to orders')
         : view === 'cart' ? '← Back to store' : view === 'orders' || view === 'store' ? '← Back to purchase' : 'Orders'}
         onToggleView={() => {
           ++requestVersion.current;
           setBusy(false);
           setError('');
           setOrder(null);
-          setView((current) => current === 'order' ? orderReturnView : current === 'checkout' ? checkoutReturnView
-            : current === 'cart' ? 'store' : current === 'orders' || current === 'store' ? 'purchase' : 'orders');
+          navigate(view === 'order' || view === 'checkout' ? returnPath
+            : view === 'cart' ? '/store' : view === 'orders' || view === 'store' ? '/' : '/orders');
         }} />
       {session && (view === 'purchase' || view === 'orders') && <PolicyPanel key={session.token} token={session.token} budget={budget}
         revision={ordersRevision} onSaved={() => setOrdersRevision((revision) => revision + 1)} />}
       <section id="workspace">
+      {(view === 'order' || view === 'checkout') && !session && <p>Connect your wallet and verify ownership to view this order.</p>}
+      {view === 'not-found' && <p>Page not found. Use the navigation to continue.</p>}
       {view === 'store' ? <Store products={products} loading={loading} error={catalogError} cart={cart} token={session?.token ?? ''}
-        onRefresh={() => setCatalogRevision((revision) => revision + 1)} onCart={() => setView('cart')}
+        onRefresh={() => setCatalogRevision((revision) => revision + 1)} onCart={() => navigate('/cart')}
         onAdd={(product, quantity) => setCart((items) => items.some((item) => item.product_id === product.id)
           ? items.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + quantity, 1000) } : item)
           : items.length < 20 ? [...items, { product_id: product.id, quantity }] : items)}
@@ -158,25 +180,24 @@ export default function App() {
           ? { ...item, quantity: item.quantity - 1 } : item).filter((item) => item.quantity > 0))} />
       : view === 'cart' ? <Cart key={session?.account_id ?? 'guest'} products={products} cart={cart} setCart={setCart}
         accountId={session?.account_id ?? ''} token={session?.token ?? ''} budget={budget} setBudget={setBudget}
-        onCreated={(saved) => { setCheckout(saved); setCheckoutReturnView('store'); setView('checkout');
+        onCreated={(saved) => { setCheckout(saved); navigate(`/checkouts/${saved.id}`, '/store');
           setOrdersRevision((revision) => revision + 1); }} />
-      : view === 'checkout' && session && checkout ? <CheckoutDetails key={checkout.id} checkout={checkout}
+      : view === 'checkout' && session && checkout && checkout.id === route.id ? <CheckoutDetails key={checkout.id} checkout={checkout}
         accountId={session.account_id} token={session.token} onUpdate={setCheckout}
         onPaid={() => setOrdersRevision((revision) => revision + 1)} onReview={(item) => {
           setOrder({ id: item.order_id, product_id: item.product_id, quantity: item.quantity,
             unit_price_yocto: item.unit_price_yocto, total_yocto: item.total_yocto,
             budget_yocto: checkout.budget_yocto, status: item.status });
-          setOrderReturnView('checkout'); setError(''); setView('order');
+          setError(''); navigate(`/orders/${item.order_id}`, `/checkouts/${checkout.id}`);
         }} /> : view === 'orders' ? <>
         {session ? <MyOrders key={session.token} token={session.token}
           products={products} revision={ordersRevision} onReview={(saved) => {
             ++requestVersion.current;
             setBusy(false);
             setOrder(saved);
-            setOrderReturnView('orders');
             setError('');
-            setView('order');
-          }} onCheckout={(saved) => { setCheckout(saved); setCheckoutReturnView('orders'); setError(''); setView('checkout'); }} />
+            navigate(`/orders/${saved.id}`, '/orders');
+          }} onCheckout={(saved) => { setCheckout(saved); setError(''); navigate(`/checkouts/${saved.id}`, '/orders'); }} />
           : <p>Connect your wallet and verify ownership to see your orders.</p>}
       </> : <>
       {view === 'purchase' && <>
@@ -208,7 +229,7 @@ export default function App() {
       </>}
       {error && <p className="error" role="alert">{error}</p>}
       <section aria-live="polite" aria-busy={busy}>
-        {view === 'order' && order && <article className="order-details">
+        {view === 'order' && session && order && order.id === route.id && <article className="order-details">
           <div className="order-details-heading">
             <span className="eyebrow">Order summary</span>
             <span className={`order-status ${order.status}`}>
