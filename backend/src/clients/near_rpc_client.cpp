@@ -1,6 +1,7 @@
 #include "near_rpc_client.hpp"
 
 #include <charconv>
+#include <algorithm>
 #include <cstdint>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
@@ -84,6 +85,23 @@ void NearRpcClient::VerifyAccountKey(const std::string &account,
     Require(key["permission"].IsString() &&
                 key["permission"].As<std::string>() == "FullAccess",
             Code::kMismatch);
+  } catch (const json::Exception &) {
+    throw NearRpcError(Code::kInvalidResponse);
+  }
+}
+
+std::string NearRpcClient::GetBalance(const std::string &account) const {
+  Require(IsValidNearAccountId(account), Code::kInvalidRequest);
+  try {
+    Require(Call("status", json::MakeArray())["chain_id"].As<std::string>() == "testnet",
+            Code::kWrongNetwork);
+    const auto result = Call("query", json::MakeObject("request_type", "view_account",
+        "finality", "final", "account_id", account));
+    const auto amount = result["amount"].As<std::string>();
+    Require(!amount.empty() && amount.size() <= 39 &&
+            (amount.size() == 1 || amount.front() != '0') &&
+            std::all_of(amount.begin(), amount.end(), [](char c) { return c >= '0' && c <= '9'; }));
+    return amount;
   } catch (const json::Exception &) {
     throw NearRpcError(Code::kInvalidResponse);
   }

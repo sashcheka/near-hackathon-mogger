@@ -37,6 +37,7 @@ class NearRpcClient {
                       const std::string &amount) const;
   void VerifyAccountKey(const std::string &account,
                         const std::string &public_key) const;
+  std::string GetBalance(const std::string &account) const;
 
  private:
   userver::formats::json::Value Call(

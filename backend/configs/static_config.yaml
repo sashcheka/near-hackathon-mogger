@@ -37,6 +37,13 @@ components_manager:
       recipient#env: AUTH_RECIPIENT
       recipient#fallback: localhost:5173
 
+    handler-balance:
+      path: /wallets/{account_id}/balance
+      method: GET
+      task_processor: main-task-processor
+      rpc-url#env: NEAR_TESTNET_RPC_URL
+      rpc-url#fallback: https://rpc.testnet.near.org
+
     handler-products:
       path: /products
       method: GET

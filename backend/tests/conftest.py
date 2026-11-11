@@ -28,6 +28,7 @@ def userver_config_http_client(userver_config_http_client, mockserver_info):
         userver_config_http_client(config, config_vars)
         components = config['components_manager']['components']
         overrides = {
+            'handler-balance': {'rpc-url': mockserver_info.url('/balance-rpc')},
             'handler-auth': {'rpc-url': mockserver_info.url('/near-rpc'),
                              'recipient': 'localhost:5173'},
             'merchant-settings': {'account-id': 'merchant.testnet'},
