@@ -27,6 +27,7 @@ add_executable(community_treasury_backend
     src/services/orders_service.cpp
     src/services/payments_service.cpp
     src/repositories/orders_repository.cpp
+    src/repositories/policies_repository.cpp
     src/repositories/payments_repository.cpp
     src/repositories/products_repository.cpp
     src/clients/ollama_client.cpp
