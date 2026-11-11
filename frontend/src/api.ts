@@ -1,5 +1,12 @@
 export type Product = { id: string; name: string; price_yocto: string;
   merchant_id: string; merchant_name: string };
+export type CartItem = { product_id: string; quantity: number };
+export type CheckoutItem = CartItem & {
+  order_id: string; product_name: string; unit_price_yocto: string; total_yocto: string;
+  merchant_id: string; merchant_name: string; receiver_id: string; status: 'pending_payment' | 'paid';
+};
+export type Checkout = { id: string; total_yocto: string; budget_yocto: string; items: CheckoutItem[] };
+export type CheckoutRequest = { id: string; budget_yocto: string; items: CartItem[] };
 
 export type Order = {
   id: string;
@@ -37,6 +44,7 @@ const errors: Record<string, string> = {
   policy_unit_limit: 'The unit price exceeds your saved unit price limit.',
   policy_merchant: 'The merchant is not allowed by your saved rules.',
   merchant_not_configured: 'This merchant has not set up a Testnet payment account yet.',
+  checkout_conflict: 'This checkout ID is already associated with a different request.',
   balance_unavailable: 'Wallet balance is unavailable. Try refreshing.',
   no_matching_product: 'No matching product was found in the catalog.',
   invalid_model_response: 'The assistant returned an invalid selection. Please try again.',
@@ -85,6 +93,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const getProducts = () => request<{ products: Product[] }>('/products');
+
+export const createCheckout = (token: string, checkout: CheckoutRequest) =>
+  request<Checkout>('/checkouts', { method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(checkout) });
+export const getCheckout = (token: string, id: string) => request<Checkout>(`/checkouts/${encodeURIComponent(id)}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+export const getCheckouts = (token: string) => request<{ checkouts: Checkout[] }>('/checkouts', {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
 export async function getWalletBalance(accountId: string) {
   const result = await request<{ account_id: string; network_id: string; amount_yocto: string }>(
