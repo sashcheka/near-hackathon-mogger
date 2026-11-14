@@ -8,6 +8,7 @@ export type CheckoutItem = CartItem & {
 export type Checkout = { id: string; total_yocto: string; budget_yocto: string; items: CheckoutItem[] };
 export type CheckoutRequest = { id: string; budget_yocto: string; items: CartItem[] };
 export type ProductSuggestion = CartItem;
+export type ShoppingSuggestion = { items: ProductSuggestion[]; missing: string[] };
 
 export type Order = {
   id: string;
@@ -101,6 +102,20 @@ export async function suggestProduct(token: string, prompt: string) {
     body: JSON.stringify({ prompt, selection_only: true }) });
   if (typeof result.product_id !== 'string' || !result.product_id || result.product_id.length > 128 ||
       !Number.isInteger(result.quantity) || result.quantity < 1 || result.quantity > 1000)
+    throw new Error('The assistant returned an invalid selection.');
+  return result;
+}
+
+export async function suggestShoppingList(token: string, prompt: string) {
+  const result = await request<ShoppingSuggestion>('/purchase-requests', { method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, multiple: true }) });
+  if (!Array.isArray(result.items) || !Array.isArray(result.missing) || result.items.length > 20 ||
+      result.missing.length > 20 || (!result.items.length && !result.missing.length) ||
+      result.items.some((item) => !item || typeof item.product_id !== 'string' || !item.product_id ||
+        item.product_id.length > 128 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) ||
+      new Set(result.items.map((item) => item.product_id)).size !== result.items.length ||
+      result.missing.some((name) => typeof name !== 'string' || !name || name.length > 200))
     throw new Error('The assistant returned an invalid selection.');
   return result;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { suggestProduct } from './api';
-import type { CartItem, Product } from './api';
+import { suggestShoppingList } from './api';
+import type { CartItem, Product, ShoppingSuggestion } from './api';
 import { fromYocto } from './amounts';
 
 type Props = { products: Product[]; cart: CartItem[]; token: string; disabled: boolean;
@@ -9,7 +9,7 @@ type Props = { products: Product[]; cart: CartItem[]; token: string; disabled: b
 
 export default function StoreAssistant({ products, cart, token, disabled, onAdd }: Props) {
   const [prompt, setPrompt] = useState('');
-  const [suggestion, setSuggestion] = useState<CartItem | null>(null);
+  const [suggestion, setSuggestion] = useState<ShoppingSuggestion | null>(null);
   const [error, setError] = useState('');
   const [thinking, setThinking] = useState(false);
   const requestVersion = useRef(0);
@@ -19,10 +19,10 @@ export default function StoreAssistant({ products, cart, token, disabled, onAdd 
     setThinking(false);
     return () => { ++requestVersion.current; };
   }, [token]);
-  const selected = products.find((product) => product.id === suggestion?.product_id);
-  const selectedQuantity = cart.find((item) => item.product_id === selected?.id)?.quantity ?? 0;
-  const canAdd = !!selected && !!suggestion && selectedQuantity + suggestion.quantity <= 1000 &&
-    (selectedQuantity > 0 || cart.length < 20);
+  const selections = suggestion?.items.map((item) => ({ item, product: products.find((p) => p.id === item.product_id) })) ?? [];
+  const newItems = selections.filter(({ item }) => !cart.some((entry) => entry.product_id === item.product_id)).length;
+  const canAdd = selections.length > 0 && cart.length + newItems <= 20 && selections.every(({ item, product }) =>
+    !!product && (cart.find((entry) => entry.product_id === item.product_id)?.quantity ?? 0) + item.quantity <= 1000);
 
   async function suggest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,7 +32,7 @@ export default function StoreAssistant({ products, cart, token, disabled, onAdd 
     setSuggestion(null);
     setError('');
     try {
-      const result = await suggestProduct(token, prompt.trim());
+      const result = await suggestShoppingList(token, prompt.trim());
       if (requestVersion.current === version) setSuggestion(result);
     } catch (reason) {
       if (requestVersion.current === version)
@@ -46,19 +46,23 @@ export default function StoreAssistant({ products, cart, token, disabled, onAdd 
       <span className="store-assistant-open" aria-hidden="true">+</span>
     </summary>
     <form onSubmit={suggest}>
-      <label htmlFor="store-prompt">Describe one product</label>
+      <label htmlFor="store-prompt">Describe your shopping list</label>
       <textarea id="store-prompt" value={prompt} rows={2} maxLength={2000} required disabled={thinking}
-        placeholder="For example, unsweetened oat milk" onChange={(event) => { setPrompt(event.target.value); setSuggestion(null); }} />
+        placeholder="For example, coffee, two boxes of tea and bread" onChange={(event) => { setPrompt(event.target.value); setSuggestion(null); }} />
       {!token && <small>Connect and verify your wallet to use the assistant.</small>}
-      <button type="submit" disabled={!token || thinking || disabled}>{thinking ? 'Finding a product…' : 'Find a product'}</button>
+      <button type="submit" disabled={!token || thinking || disabled}>{thinking ? 'Finding products…' : 'Find products'}</button>
       {error && <p className="error" role="alert">{error}</p>}
       {suggestion && <div className="store-suggestion" role="status">
-        {selected ? <><strong>{selected.name}</strong><small>{selected.merchant_name} · Qty {suggestion.quantity} · {fromYocto(selected.price_yocto)} test NEAR each</small>
-          {!selected.merchant_ready && <small>Payment setup is needed for this merchant.</small>}
-          <button className="secondary-button" type="button" disabled={!canAdd}
-            onClick={() => { onAdd(selected, suggestion.quantity); setSuggestion(null); }}>Add selection</button>
-          {!canAdd && <small>Cart quantity or product limit reached.</small>}</>
-          : <p>This product is no longer available. Refresh the catalog.</p>}
+        {selections.map(({ item, product }) => <div key={item.product_id}>
+          <strong>{product?.name ?? item.product_id}</strong>
+          {product ? <small>{product.merchant_name} · Qty {item.quantity} · {fromYocto(product.price_yocto)} test NEAR each</small>
+            : <small>Product unavailable. Refresh the catalog.</small>}
+          {product && !product.merchant_ready && <small>Payment setup is needed for this merchant.</small>}
+        </div>)}
+        {suggestion.missing.length > 0 && <p>Not found or unclear: {suggestion.missing.join(', ')}</p>}
+        {selections.length > 0 && <button className="secondary-button" type="button" disabled={!canAdd}
+          onClick={() => { selections.forEach(({ item, product }) => { if (product) onAdd(product, item.quantity); }); setSuggestion(null); }}>Add selection</button>}
+        {selections.length > 0 && !canAdd && <small>Check product availability and cart limits.</small>}
       </div>}
     </form>
   </details>;
