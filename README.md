@@ -1,6 +1,14 @@
 # Community Treasury
 
-A budget-controlled purchasing assistant. An AI model selects a product, the backend validates the purchase, and the user confirms payment through a NEAR wallet.
+A budget-controlled purchasing assistant. Local AI suggests products, the backend checks purchase rules, and the user confirms NEAR Testnet payments through a wallet.
+
+## Demo
+
+Watch the recordings: [Part 1](resources/Screen%20Recording%202026-11-14%20at%2019.04.01.mov) · [Part 2](resources/Screen%20Recording%202026-11-14%20at%2019.11.51.mov) · [Part 3](resources/Screen%20Recording%202026-11-14%20at%2019.14.00.mov).
+
+![Community Treasury wallet and purchase rules](resources/Screenshot%202026-11-14%20at%2019.26.37.png)
+
+[More screenshots](resources/)
 
 ## Local development
 
