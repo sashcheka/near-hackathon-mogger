@@ -4,9 +4,11 @@ A budget-controlled purchasing assistant. Local AI suggests products, the backen
 
 ## Demo
 
-Watch the recordings: [Part 1](resources/Screen%20Recording%202026-11-14%20at%2019.04.01.mov) · [Part 2](resources/Screen%20Recording%202026-11-14%20at%2019.11.51.mov) · [Part 3](resources/Screen%20Recording%202026-11-14%20at%2019.14.00.mov).
+![Community Treasury demo, part 1](resources/demo.gif)
 
-![Community Treasury demo](resources/demo.gif)
+![Community Treasury demo, part 2](resources/demo-2.gif)
+
+![Community Treasury demo, part 3](resources/demo-3.gif)
 
 [More screenshots](resources/)
 
