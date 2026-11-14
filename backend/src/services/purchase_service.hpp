@@ -12,6 +12,7 @@ class PurchaseService {
   Order Create(const std::string& prompt, const std::string& budget,
                  const std::string& buyer_id) const;
   ProductSelection Suggest(const std::string& prompt) const;
+  ShoppingSelection SuggestMany(const std::string& prompt) const;
 
  private:
   const userver::storages::postgres::ClusterPtr cluster_;

@@ -73,6 +73,31 @@ async def test_model_suggestion_does_not_create_order(service_client, pgsql, oll
         assert cursor.fetchone() == (0,)
 
 
+async def test_multiple_suggestions_report_missing_without_creating_orders(service_client, pgsql, ollama, buyer_token):
+    ollama['content'] = json.dumps({'items': [
+        {'product_id': 'toilet-paper', 'quantity': 2}, {'product_id': 'milk-whole', 'quantity': 1}],
+        'missing': ['soy milk']})
+    response = await service_client.post('/purchase-requests',
+        json={'prompt': REQUEST['prompt'], 'multiple': True}, bearer=buyer_token)
+    assert response.status == 200
+    assert response.json() == json.loads(ollama['content'])
+    with pgsql['treasury'].cursor() as cursor:
+        cursor.execute('SELECT count(*) FROM orders')
+        assert cursor.fetchone() == (0,)
+
+
+@pytest.mark.parametrize('items', [
+    [{'product_id': 'made-up', 'quantity': 1}],
+    [{'product_id': 'toilet-paper', 'quantity': 0}],
+    [{'product_id': 'toilet-paper', 'quantity': 1}] * 2,
+])
+async def test_invalid_multiple_selection_is_rejected(service_client, ollama, buyer_token, items):
+    ollama['content'] = json.dumps({'items': items, 'missing': []})
+    response = await service_client.post('/purchase-requests',
+        json={'prompt': REQUEST['prompt'], 'multiple': True}, bearer=buyer_token)
+    assert response.status == 502 and response.json() == {'error': 'invalid_model_response'}
+
+
 @pytest.mark.parametrize(('changes', 'status', 'error'), [
     ({'content': 'not JSON'}, 502, 'invalid_model_response'),
     ({'content': '{"product_id":"made-up","quantity":1}'}, 502, 'invalid_model_response'),

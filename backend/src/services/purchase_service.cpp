@@ -35,4 +35,11 @@ ProductSelection PurchaseService::Suggest(const std::string& prompt) const {
   return selection;
 }
 
+ShoppingSelection PurchaseService::SuggestMany(const std::string& prompt) const {
+  if (prompt.empty() || prompt.size() > 2000 ||
+      prompt.find_first_not_of(" \t\r\n") == std::string::npos)
+    throw OrderError(OrderErrorCode::kInvalidRequest);
+  return model_.SelectMany(prompt, products_repository::List(cluster_));
+}
+
 }  // namespace community_treasury

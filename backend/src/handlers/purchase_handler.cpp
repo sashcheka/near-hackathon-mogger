@@ -34,6 +34,15 @@ std::string PurchaseHandler::HandleRequestThrow(
     const auto value = json::FromString(request.RequestBody());
     if (!value.IsObject() || value.GetSize() != 2 || !value["prompt"].IsString())
       throw OrderError(OrderErrorCode::kInvalidRequest);
+    if (value["multiple"].IsBool() && value["multiple"].As<bool>()) {
+      const auto selection = service_.SuggestMany(value["prompt"].As<std::string>());
+      json::ValueBuilder items(json::Type::kArray), missing(json::Type::kArray);
+      for (const auto& item : selection.items)
+        items.PushBack(json::MakeObject("product_id", item.product_id, "quantity", item.quantity));
+      for (const auto& name : selection.missing) missing.PushBack(name);
+      return JsonResponse(request, Status::kOk,
+          json::MakeObject("items", items.ExtractValue(), "missing", missing.ExtractValue()));
+    }
     if (value["selection_only"].IsBool() && value["selection_only"].As<bool>()) {
       const auto selection = service_.Suggest(value["prompt"].As<std::string>());
       return JsonResponse(request, Status::kOk, json::MakeObject(

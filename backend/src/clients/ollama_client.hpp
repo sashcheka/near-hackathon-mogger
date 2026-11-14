@@ -16,6 +16,11 @@ struct ProductSelection {
   std::int64_t quantity;
 };
 
+struct ShoppingSelection {
+  std::vector<ProductSelection> items;
+  std::vector<std::string> missing;
+};
+
 enum class ModelErrorCode {
   kUnavailable,
   kTimeout,
@@ -36,8 +41,12 @@ class OllamaClient {
                std::string model);
   ProductSelection Select(const std::string& prompt,
                           const std::vector<Product>& products) const;
+  ShoppingSelection SelectMany(const std::string& prompt,
+                               const std::vector<Product>& products) const;
 
  private:
+  ShoppingSelection SelectImpl(const std::string& prompt,
+                               const std::vector<Product>& products, bool multiple) const;
   userver::clients::http::Client& http_;
   const std::string url_;
   const std::string model_;
